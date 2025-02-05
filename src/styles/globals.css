@@ -1,0 +1,121 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .heading-regularL {
+    font-family: "Roboto";
+    font-size: 64px;
+    font-weight: 400;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .heading-regularM {
+    font-family: "Roboto";
+    font-size: 56px;
+    font-weight: 400;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .heading-regularS {
+    font-family: "Roboto";
+    font-size: 48px;
+    font-weight: 400;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .heading-boldL {
+    font-family: "Roboto";
+    font-size: 64px;
+    font-weight: bold;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .heading-boldM {
+    font-family: "Roboto";
+    font-size: 56px;
+    font-weight: bold;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .heading-boldS {
+    font-family: "Roboto";
+    font-size: 48px;
+    font-weight: bold;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .body-regularL {
+    font-family: "Roboto";
+    font-size: 24px;
+    font-weight: 400px;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .body-regularM {
+    font-family: "Roboto";
+    font-size: 20px;
+    font-weight: 400px;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .body-regularS {
+    font-family: "Roboto";
+    font-size: 16px;
+    font-weight: 400px;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .body-boldL {
+    font-family: "Roboto";
+    font-size: 24px;
+    font-weight: bold;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .body-boldM {
+    font-family: "Roboto";
+    font-size: 20px;
+    font-weight: bold;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .body-boldS {
+    font-family: "Roboto";
+    font-size: 16px;
+    font-weight: bold;
+    font-style: normal;
+    line-height: normal;
+  }
+
+  .bg-modern-gradient {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+  }
+  .shadow-soft {
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .button-modern:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease-in-out, background-color 0.3s;
+  }
+
+  .palette-button:hover {
+    background-color: #4facfe;
+    color: #fff;
+    transition: all 0.3s ease-in-out;
+  }
+}
