@@ -2,19 +2,31 @@
 "use client";
 import { useRouter } from "next/navigation";
 
-export default function Navbar() {
+interface NavbarProps {
+  onNavigate?: (path: string) => void;  // Optional prop for handling navigation
+}
+
+export default function Navbar({ onNavigate }: NavbarProps) {
   const router = useRouter();
+
+  const handleClick = (path: string) => {
+    if (onNavigate) {
+      onNavigate(path);
+    } else {
+      router.push(path);
+    }
+  };
 
   return (
     <div className="flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-r from-blue-600 to-blue-400 text-white fixed top-0 left-0 h-full p-6 flex flex-col justify-between">
+      <aside className="w-64 bg-gradient-to-r from-blue-600 to-blue-400 text-white fixed top-0 left-0 h-full p-6 flex flex-col justify-between z-10">
+  
         <div>
           {/* Logo */}
           <div
             className="text-2xl font-semibold mb-8 cursor-pointer"
-            onClick={() => router.push("/")}
-          >
+            onClick={() => handleClick("/")}>
             Admin Dashboard
           </div>
           <nav>
@@ -22,32 +34,28 @@ export default function Navbar() {
               <li>
                 <div
                   className="block py-3 px-4 text-lg font-medium cursor-pointer hover:bg-blue-500 transition duration-300"
-                  onClick={() => router.push("/")}
-                >
+                  onClick={() => handleClick("/")}>
                   Dashboard
                 </div>
               </li>
               <li>
                 <div
                   className="block py-3 px-4 text-lg font-medium cursor-pointer hover:bg-blue-500 transition duration-300"
-                  onClick={() => router.push("/questions")}
-                >
+                  onClick={() => handleClick("/questions")}>
                   Manage Question
                 </div>
               </li>
               <li>
                 <div
                   className="block py-3 px-4 text-lg font-medium cursor-pointer hover:bg-blue-500 transition duration-300"
-                  onClick={() => router.push("/users")}
-                >
+                  onClick={() => handleClick("/users")}>
                   Manage User
                 </div>
               </li>
               <li>
                 <div
                   className="block py-3 px-4 text-lg font-medium cursor-pointer hover:bg-blue-500 transition duration-300"
-                  onClick={() => router.push("/settings")}
-                >
+                  onClick={() => handleClick("/settings")}>
                   Settings
                 </div>
               </li>

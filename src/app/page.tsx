@@ -6,7 +6,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="ml-64 p-8 bg-gray-100">
+      <div className="p-8 bg-gray-100">
         {/* Dashboard Header */}
         <header className="flex justify-between items-center bg-white shadow-md p-4 mb-8">
           <div className="text-2xl font-semibold text-gray-800">Dashboard</div>

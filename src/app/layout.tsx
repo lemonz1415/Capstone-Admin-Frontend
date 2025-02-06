@@ -6,22 +6,29 @@ import Navbar from "@/components/navbar";
 export const metadata: Metadata = {
   title: "TOEIC Prep",
 };
-
-export default function RootLayout({
-  children,
-}: Readonly<{
+interface RootLayoutProps {
   children: React.ReactNode;
-}>) {
+  navbar?: {
+    onNavigate?: (path: string) => void;
+  };
+}
+
+export default function RootLayout({ children, navbar }: RootLayoutProps) {
   return (
     <html lang="en">
-      <body>
-        <div className="flex flex-col h-screen">
-          <Suspense>
-            <Navbar />
-            <main className="flex-grow">{children}</main>
-          </Suspense>
-        </div>
-      </body>
-    </html>
+  <body>
+    <div className="min-h-screen flex">
+      <Suspense>
+      <Navbar onNavigate={navbar?.onNavigate} />
+      </Suspense>
+      <main className="flex-grow ml-64"> 
+        {children}
+      </main>
+    </div>
+  </body>
+</html>
+
   );
 }
+
+
