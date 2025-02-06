@@ -290,7 +290,7 @@ export default function CreateQuestion() {
         isPreview={true}
       />
 
-      <div className="max-w-5xl mx-auto px-4 ml-64">
+      <div className="max-w-5xl mx-auto px-4">
         {/* Header Section */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
           <div className="flex items-center">
