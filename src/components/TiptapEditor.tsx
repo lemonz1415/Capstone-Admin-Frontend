@@ -1,4 +1,5 @@
 'use client'
+import { useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TextStyle from '@tiptap/extension-text-style'
@@ -14,9 +15,19 @@ interface TiptapEditorProps {
   content: string;
   onChange: (content: string) => void;
   immediatelyRender?: boolean;
+  editorProps?: {
+    attributes?: {
+      class?: string;
+    };
+  };
 }
 
-const TiptapEditor = ({ content, onChange, immediatelyRender = false }: TiptapEditorProps) => {
+const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProps = {
+  attributes: {
+    class: 'prose focus:outline-none max-w-full'
+  }
+} 
+}: TiptapEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -31,12 +42,22 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false }: TiptapEd
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    editorProps: editorProps,
+    immediatelyRender: immediatelyRender
   });
 
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
+  
   if (!editor) {
     return null;
   }
 
+
+  
   const colors = [
     { name: 'Black', value: '#000000' },
     { name: 'Red', value: '#EF4444' },

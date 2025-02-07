@@ -7,7 +7,6 @@ import Modal from "@/components/modal";
 import { IoChevronBack } from "react-icons/io5";
 import Navbar from "@/components/navbar";
 
-
 interface QuestionOption {
   text: string;
   isCorrect: boolean;
@@ -29,6 +28,7 @@ const skills = [
   { id: 5, name: "Reading" },
 ];
 
+const MAX_OPTION_LENGTH = 200; // กำหนด max length ของ option
 export default function CreateQuestion() {
   const router = useRouter();
   const [skillId, setSkillId] = useState<number | null>(null);
@@ -47,13 +47,38 @@ export default function CreateQuestion() {
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
 
-  // ฟังก์ชันตรวจสอบข้อมูลที่กรอก
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+
+  const handleClearForm = () => {
+    setIsClearModalOpen(true);
+  };
+
+  const confirmClearForm = () => {
+    setSkillId(null);
+    setQuestionText("");
+    setOptions([
+      { text: "", isCorrect: false },
+      { text: "", isCorrect: false },
+      { text: "", isCorrect: false },
+      { text: "", isCorrect: false },
+    ]);
+    setIsClearModalOpen(false);
+    toast.success("Form cleared successfully");
+  };
+
   const hasUnsavedChanges = useCallback(() => {
-    return (
-      skillId !== null ||
-      questionText !== "" ||
-      options.some((option) => option.text !== "" || option.isCorrect)
+    // ตรวจสอบว่ามีการเปลี่ยนแปลงและมีข้อมูลจริงๆ
+    const hasSkillChange = skillId !== null;
+
+    // ตรวจสอบว่า questionText มีเนื้อหาจริงๆ
+    const hasQuestionChange = questionText.trim() !== "";
+
+    // ตรวจสอบว่ามี option ที่มีข้อความหรือถูกเลือกจริงๆ
+    const hasOptionsChange = options.some(
+      (option) => option.text.trim() !== "" || option.isCorrect
     );
+
+    return hasSkillChange || hasQuestionChange || hasOptionsChange;
   }, [skillId, questionText, options]);
 
   // ฟังก์ชันจัดการการ navigate
@@ -70,7 +95,6 @@ export default function CreateQuestion() {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges()) {
         e.preventDefault();
-        e.returnValue = "";
       }
     };
 
@@ -93,13 +117,32 @@ export default function CreateQuestion() {
   }, [skillId, questionText, options]);
 
   const handleSkillChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedSkillId = parseInt(e.target.value, 10);
+    const value = e.target.value;
+    if (value === "") {
+      setSkillId(null);
+      return;
+    }
+    const selectedSkillId = parseInt(value, 10);
+    if (isNaN(selectedSkillId)) {
+      toast.error("Invalid skill ID");
+      setSkillId(null);
+      return;
+    }
     setSkillId(selectedSkillId);
   };
 
   const handleEditorChange = (content: string) => {
-    if (content !== questionText) {
-      setQuestionText(content);
+    // ลบ HTML tags และ trim whitespace
+    const plainText = content.replace(/<[^>]*>/g, "").trim();
+
+    // ถ้าไม่มีข้อความเหลืออยู่เลย ให้เซ็ตเป็นค่าว่าง
+    if (plainText === "") {
+      setQuestionText("");
+    } else {
+      // ถ้ามีข้อความ ให้เก็บค่า HTML ตามปกติ
+      if (content !== questionText) {
+        setQuestionText(content);
+      }
     }
   };
 
@@ -108,8 +151,12 @@ export default function CreateQuestion() {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const newOptions = [...options];
-    newOptions[index].text = e.target.value;
-    setOptions(newOptions);
+    if (e.target.value.length <= MAX_OPTION_LENGTH) {
+      newOptions[index].text = e.target.value;
+      setOptions(newOptions);
+    } else {
+      toast.error(`Option text cannot exceed ${MAX_OPTION_LENGTH} characters.`);
+    }
   };
 
   const handleIsCorrectChange = (
@@ -164,20 +211,21 @@ export default function CreateQuestion() {
     if (e) {
       e.preventDefault();
     }
-    
+
     if (!isFormValid()) {
       toast.error("Please fill in all fields correctly.");
       return;
     }
-  
+
+    if (!skillId) {
+      toast.error("Please select a skill");
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     const userId = "087";
     const createdAt = new Date().toISOString();
-    
-    if (!skillId) {
-        toast.error("Please select a skill");
-        return;
-      }
 
     const data: NewQuestionData = {
       skillId,
@@ -186,7 +234,7 @@ export default function CreateQuestion() {
       userId,
       createdAt,
     };
-  
+
     try {
       const response = await fetch("/api/questions", {
         method: "POST",
@@ -195,10 +243,10 @@ export default function CreateQuestion() {
         },
         body: JSON.stringify(data),
       });
-  
+
       if (response.ok) {
         toast.success("Question created successfully.");
-        
+
         // Clear form after successful submission
         setSkillId(null);
         setQuestionText("");
@@ -208,19 +256,24 @@ export default function CreateQuestion() {
           { text: "", isCorrect: false },
           { text: "", isCorrect: false },
         ]);
-        
+
         setIsPreviewModalOpen(false); // ปิด modal preview หลังจากสร้างสำเร็จ
         router.push("/questions");
-      } else if (response.status === 400) {
-        toast.error("Validation error. Please check your input.");
       } else {
-        toast.error("Failed to create question. Please try again.");
+        const errorData = await response.json();
+        if (response.status === 400) {
+          toast.error(errorData.message || "Validation error. Please check your input.");
+        } else if (response.status === 401) {
+          toast.error("Authentication failed. Please login again.");
+        } else if (response.status === 500) {
+          toast.error("Internal server error. Please try again later.");
+        } else {
+          toast.error(`Failed to create question. Status: ${response.status}`);
+        }
       }
-      
     } catch (error) {
       console.error(error);
       toast.error("An error occurred while creating the question.");
-      
     } finally {
       setIsLoading(false);
     }
@@ -228,7 +281,7 @@ export default function CreateQuestion() {
 
   return (
     <div className="bg-gray-50 min-h-screen py-8">
-        <Navbar onNavigate={handleNavigation} />
+      <Navbar onNavigate={handleNavigation} />
       <Toaster position="top-right" />
 
       {/* Modal */}
@@ -243,6 +296,16 @@ export default function CreateQuestion() {
         message="You have unsaved changes. Are you sure you want to leave this page? Your changes will be lost."
         confirmText="Leave Page"
         cancelText="Stay"
+        actionType="default"
+      />... {/* Clear Form Modal */}
+      <Modal
+        isOpen={isClearModalOpen}
+        onClose={() => setIsClearModalOpen(false)}
+        onConfirmFetch={confirmClearForm}
+        title="Clear Form"
+        message="Are you sure you want to clear all form data? This action cannot be undone."
+        confirmText="Clear"
+        cancelText="Cancel"
         actionType="default"
       />
 
@@ -324,7 +387,7 @@ export default function CreateQuestion() {
               </label>
               <select
                 id="skill"
-                value={skillId ?? ""}
+                value={String(skillId ?? "")}
                 onChange={handleSkillChange}
                 disabled={isLoading} // Disable when loading
                 className={`block w-full pl-4 pr-10 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out bg-white ${
@@ -349,6 +412,11 @@ export default function CreateQuestion() {
                 content={questionText}
                 onChange={handleEditorChange}
                 immediatelyRender={false}
+                editorProps={{
+                  attributes: {
+                    class: "prose focus:outline-none max-w-full",
+                  },
+                }}
               />
             </div>
 
@@ -428,14 +496,24 @@ export default function CreateQuestion() {
 
             {/* Submit Button */}
             <div className="mt-8 flex justify-between">
-              <button
-                type="button"
-                onClick={() => handleNavigation("/questions")}
-                disabled={isLoading}
-                className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-150 ease-in-out"
-              >
-                Cancel
-              </button>
+              <div className="flex space-x-4">
+                <button
+                  type="button"
+                  onClick={() => handleNavigation("/questions")}
+                  disabled={isLoading}
+                  className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-150 ease-in-out"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearForm}
+                  disabled={isLoading || !hasUnsavedChanges()}
+                  className="px-8 py-3 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Clear Form
+                </button>
+              </div>
 
               <div className="flex space-x-4">
                 <button
