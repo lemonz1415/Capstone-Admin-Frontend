@@ -199,10 +199,10 @@ export default function CreateQuestion() {
   };
 
   const handlePreview = () => {
-    if (!isFormValid()) {
-      toast.error("Please fill in all fields correctly before preview.");
-      return;
-    }
+    // if (!isFormValid()) {
+    //   toast.error("Please fill in all fields correctly before preview.");
+    //   return;
+    // }
     setIsPreviewModalOpen(true);
   };
 
