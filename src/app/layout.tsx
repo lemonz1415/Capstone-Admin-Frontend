@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
 import { Suspense } from "react";
+import { Providers } from "./providers";
 import Navbar from "@/components/navbar";
 
 export const metadata: Metadata = {
@@ -15,12 +16,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="flex flex-col h-screen">
-          <Suspense>
-            <Navbar />
-            <main className="flex-grow">{children}</main>
-          </Suspense>
-        </div>
+        <Providers>
+          <div className="flex flex-col h-screen">
+            <Suspense>
+              <Navbar />
+              <main className="flex-grow">{children}</main>
+            </Suspense>
+          </div>
+        </Providers>
       </body>
     </html>
   );

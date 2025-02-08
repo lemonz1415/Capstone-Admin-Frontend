@@ -16,7 +16,7 @@ import {
   editQuestionQuery,
   getSkillAllQuery,
   deleteQuestionQuery,
-} from "@/query/question.query";
+} from "@/query/old-question.query";
 import { getExamPreviewQuery } from "@/query/exam.query";
 import classNames from "classnames";
 
