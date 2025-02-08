@@ -142,7 +142,7 @@ export default function ManageQuestion() {
             {/* Add New Question Button */}
             <button
               className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition duration-300"
-              onClick={() => router.push("/add-question")}
+              onClick={() => router.push("/questions/create")}
             >
               Add New Question
             </button>

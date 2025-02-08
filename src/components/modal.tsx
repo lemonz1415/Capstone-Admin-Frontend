@@ -3,19 +3,25 @@
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
-import { faCircleXmark } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCircleXmark,
+  faQuestion,
+  faEye,
+  faXmark
+} from "@fortawesome/free-solid-svg-icons";
 
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirmFetch: () => void;
+  onConfirmFetch: (() => Promise<void>) | (() => void); 
   title: string;
-  message: string;
+  message: string | React.ReactNode;
   confirmText?: string;
   cancelText?: string;
   icon?: IconDefinition;
   iconColor?: string;
   actionType?: "delete" | "default";
+  isPreview?: boolean;
 }
 
 export default function Modal({
@@ -26,25 +32,22 @@ export default function Modal({
   message,
   confirmText = "Confirm",
   cancelText = "Cancel",
-  icon = faCircleXmark,
-  iconColor = "text-red-500",
+  icon = faQuestion,
+  iconColor = "text-white",
   actionType = "default",
+  isPreview = false,
 }: ModalProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleConfirm = async () => {
     try {
       setIsLoading(true);
-      await onConfirmFetch();
-      //   toast.success("Action completed successfully!", {
-      //     position: "top-right",
-      //     autoClose: 3000,
-      //   });
+      const result = onConfirmFetch();
+      if (result instanceof Promise) {
+        await result;
+      }
     } catch (error: any) {
-      //   toast.error("An error occurred. Please try again.", {
-      //     position: "top-right",
-      //     autoClose: 3000,
-      //   });
+      console.error("Error in modal confirm:", error);
     } finally {
       setIsLoading(false);
     }
@@ -54,14 +57,32 @@ export default function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg p-8 w-[90%] max-w-xl shadow-lg text-center">
+      <div className="bg-white rounded-lg p-8 w-[90%] max-w-xl shadow-lg text-center relative">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-4 text-gray-400 hover:text-gray-500 transition-colors"
+        >
+          <FontAwesomeIcon icon={faXmark} className="text-2xl" />
+        </button>
         <div className="flex justify-center mb-6">
-          <FontAwesomeIcon icon={icon} className={`text-6xl ${iconColor}`} />
+          <div
+            className={`${
+              isPreview
+                ? "bg-blue-500"
+                : actionType === "delete"
+                ? "bg-red-500"
+                : "bg-blue-500"
+            } p-6 rounded-full w-20 h-20 flex items-center justify-center`}
+          >
+            <FontAwesomeIcon
+              icon={isPreview ? faEye : icon}
+              className={`text-4xl ${iconColor}`}
+            />
+          </div>
         </div>
-
         <h2 className="text-2xl font-bold mb-4">{title}</h2>
-
-        <p className="text-gray-400 mb-10">{message}</p>
+        <div className="text-gray-600 mb-10">{message}</div>
 
         <div className="flex justify-center space-x-4">
           <button
@@ -69,23 +90,19 @@ export default function Modal({
             className="px-8 py-2 bg-gray-300 rounded-md text-gray-800 hover:bg-gray-400"
             disabled={isLoading}
           >
-            {cancelText}
+            {isPreview ? "Close" : cancelText}
           </button>
-          <button
-            onClick={handleConfirm}
-            className={`px-8 py-2 ${
-              isLoading
-                ? actionType === "delete"
-                  ? "bg-red-300"
-                  : "bg-blue-300"
-                : actionType === "delete"
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-blue-500 hover:bg-blue-600"
-            } text-white rounded-md`}
-            disabled={isLoading}
-          >
-            {isLoading ? "Processing..." : confirmText}
-          </button>
+          {(isPreview || (!isPreview && confirmText)) && (
+            <button
+              onClick={handleConfirm}
+              className={`px-8 py-2 ${
+                isLoading ? "bg-blue-300" : "bg-blue-500 hover:bg-blue-600"
+              } text-white rounded-md`}
+              disabled={isLoading}
+            >
+              {isLoading ? "Processing..." : confirmText}
+            </button>
+          )}
         </div>
       </div>
     </div>
