@@ -20,7 +20,7 @@ export default function RootLayout({
           <Suspense>
             <Navbar />
           </Suspense>
-          <main className="flex-grow ml-64">{children}</main>
+          <main className="flex-grow">{children}</main>
         </div>
       </body>
     </html>

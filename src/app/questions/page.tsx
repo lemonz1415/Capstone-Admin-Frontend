@@ -103,11 +103,6 @@ export default function ManageQuestion() {
 
   const [selectedKeys, setSelectedKeys] = useState<any>(new Set([""]));
 
-  const selectedValue = useMemo(
-    () => Array.from(selectedKeys).join(", ").replaceAll("_", " "),
-    [selectedKeys]
-  );
-
   const onSetDate = (date: any) => {
     const dateRange = {
       start_date: new Date(date?.start).toISOString().split("T")[0],
