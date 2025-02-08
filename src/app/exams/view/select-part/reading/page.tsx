@@ -13,7 +13,7 @@ import {
   faFileCirclePlus,
 } from "@fortawesome/free-solid-svg-icons";
 import { useEffect, useState } from "react";
-import { getQuestionsByExamIDAndTypeIDQuery } from "@/query/question.query";
+import { getQuestionsByExamIDAndTypeIDQuery } from "@/query/old-question.query";
 import parse from "html-react-parser";
 
 // ฟังก์ชัน Shuffle Array
