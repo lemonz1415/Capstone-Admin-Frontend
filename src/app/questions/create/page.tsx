@@ -1,11 +1,10 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import TiptapEditor from "@/components/TiptapEditor";
 import toast, { Toaster } from "react-hot-toast";
 import Modal from "@/components/modal";
 import { IoChevronBack } from "react-icons/io5";
-import Navbar from "@/components/navbar";
 
 interface QuestionOption {
   text: string;
@@ -66,7 +65,7 @@ export default function CreateQuestion() {
     toast.success("Form cleared successfully");
   };
 
-  const hasUnsavedChanges = useCallback(() => {
+  const isFormChanges = useCallback(() => {
     // ตรวจสอบว่ามีการเปลี่ยนแปลงและมีข้อมูลจริงๆ
     const hasSkillChange = skillId !== null;
 
@@ -83,24 +82,13 @@ export default function CreateQuestion() {
 
   // ฟังก์ชันจัดการการ navigate
   const handleNavigation = (path: string) => {
-    if (hasUnsavedChanges()) {
+    if (isFormChanges()) {
       setPendingNavigation(path);
       setIsModalOpen(true);
     } else {
       router.push(path);
     }
   };
-
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges()) {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
 
   // ฟังก์ชัน validate form
   const isFormValid = useCallback(() => {
@@ -116,22 +104,17 @@ export default function CreateQuestion() {
     );
   }, [skillId, questionText, options]);
 
-  const handleSkillChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const onSelectSkill = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value === "") {
       setSkillId(null);
       return;
     }
-    const selectedSkillId = parseInt(value, 10);
-    if (isNaN(selectedSkillId)) {
-      toast.error("Invalid skill ID");
-      setSkillId(null);
-      return;
-    }
+    const selectedSkillId = parseInt(value);
     setSkillId(selectedSkillId);
   };
 
-  const handleEditorChange = (content: string) => {
+  const onEditorChange = (content: string) => {
     // ลบ HTML tags และ trim whitespace
     const plainText = content.replace(/<[^>]*>/g, "").trim();
 
@@ -151,12 +134,8 @@ export default function CreateQuestion() {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const newOptions = [...options];
-    if (e.target.value.length <= MAX_OPTION_LENGTH) {
       newOptions[index].text = e.target.value;
       setOptions(newOptions);
-    } else {
-      toast.error(`Option text cannot exceed ${MAX_OPTION_LENGTH} characters.`);
-    }
   };
 
   const handleIsCorrectChange = (
@@ -199,10 +178,6 @@ export default function CreateQuestion() {
   };
 
   const handlePreview = () => {
-    // if (!isFormValid()) {
-    //   toast.error("Please fill in all fields correctly before preview.");
-    //   return;
-    // }
     setIsPreviewModalOpen(true);
   };
 
@@ -281,7 +256,6 @@ export default function CreateQuestion() {
 
   return (
     <div className="bg-gray-50 min-h-screen py-8">
-      <Navbar onNavigate={handleNavigation} />
       <Toaster position="top-right" />
 
       {/* Modal */}
@@ -297,7 +271,7 @@ export default function CreateQuestion() {
         confirmText="Leave Page"
         cancelText="Stay"
         actionType="default"
-      />... {/* Clear Form Modal */}
+      /> {/* Clear Form Modal */}
       <Modal
         isOpen={isClearModalOpen}
         onClose={() => setIsClearModalOpen(false)}
@@ -388,7 +362,7 @@ export default function CreateQuestion() {
               <select
                 id="skill"
                 value={String(skillId ?? "")}
-                onChange={handleSkillChange}
+                onChange={onSelectSkill}
                 disabled={isLoading} // Disable when loading
                 className={`block w-full pl-4 pr-10 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out bg-white ${
                   isLoading ? "opacity-50 cursor-not-allowed" : ""
@@ -410,7 +384,7 @@ export default function CreateQuestion() {
               </label>
               <TiptapEditor
                 content={questionText}
-                onChange={handleEditorChange}
+                onChange={onEditorChange}
                 immediatelyRender={false}
                 editorProps={{
                   attributes: {
@@ -472,6 +446,7 @@ export default function CreateQuestion() {
                     id={`option${index}`}
                     value={option.text}
                     onChange={(e) => handleOptionChange(index, e)}
+                    maxLength={MAX_OPTION_LENGTH}
                     placeholder="Enter choice text..."
                     className={`w-full p-2.5 border border-gray-200 rounded-lg focus:ring-0 focus:border-gray-300 ${
                       isLoading ? "opacity-50 cursor-not-allowed" : ""
@@ -508,7 +483,7 @@ export default function CreateQuestion() {
                 <button
                   type="button"
                   onClick={handleClearForm}
-                  disabled={isLoading || !hasUnsavedChanges()}
+                  disabled={isLoading || !isFormChanges()}
                   className="px-8 py-3 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Clear Form
