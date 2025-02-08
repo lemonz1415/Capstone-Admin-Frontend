@@ -5,18 +5,19 @@ import TiptapEditor from "@/components/TiptapEditor";
 import toast, { Toaster } from "react-hot-toast";
 import Modal from "@/components/modal";
 import { IoChevronBack } from "react-icons/io5";
+import { createQuestionQuery } from "@/query/question.query";
+import { createOptionQuery } from "@/query/option.query";
 
 interface QuestionOption {
-  text: string;
-  isCorrect: boolean;
+  option_text: string;
+  is_correct: boolean;
 }
 
 interface NewQuestionData {
-  skillId: number;
-  questionText: string;
-  options: QuestionOption[];
-  userId: string;
-  createdAt: string;
+  skill_id: number | null;
+  user_id: number | null;
+  image_id: number | null;
+  question_text: string;
 }
 
 const skills = [
@@ -33,10 +34,10 @@ export default function CreateQuestion() {
   const [skillId, setSkillId] = useState<number | null>(null);
   const [questionText, setQuestionText] = useState("");
   const [options, setOptions] = useState<QuestionOption[]>([
-    { text: "", isCorrect: false },
-    { text: "", isCorrect: false },
-    { text: "", isCorrect: false },
-    { text: "", isCorrect: false },
+    { option_text: "", is_correct: false },
+    { option_text: "", is_correct: false },
+    { option_text: "", is_correct: false },
+    { option_text: "", is_correct: false },
   ]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,10 +57,10 @@ export default function CreateQuestion() {
     setSkillId(null);
     setQuestionText("");
     setOptions([
-      { text: "", isCorrect: false },
-      { text: "", isCorrect: false },
-      { text: "", isCorrect: false },
-      { text: "", isCorrect: false },
+      { option_text: "", is_correct: false },
+      { option_text: "", is_correct: false },
+      { option_text: "", is_correct: false },
+      { option_text: "", is_correct: false },
     ]);
     setIsClearModalOpen(false);
     toast.success("Form cleared successfully");
@@ -74,7 +75,7 @@ export default function CreateQuestion() {
 
     // ตรวจสอบว่ามี option ที่มีข้อความหรือถูกเลือกจริงๆ
     const hasOptionsChange = options.some(
-      (option) => option.text.trim() !== "" || option.isCorrect
+      (option) => option.option_text.trim() !== "" || option.is_correct
     );
 
     return hasSkillChange || hasQuestionChange || hasOptionsChange;
@@ -95,9 +96,9 @@ export default function CreateQuestion() {
     const hasSkill = skillId !== null;
     const hasQuestionText = questionText.trim() !== "";
     const allOptionsHaveText = options.every(
-      (option) => option.text.trim() !== ""
+      (option) => option.option_text.trim() !== ""
     );
-    const hasCorrectAnswer = options.some((option) => option.isCorrect);
+    const hasCorrectAnswer = options.some((option) => option.is_correct);
 
     return (
       hasSkill && hasQuestionText && allOptionsHaveText && hasCorrectAnswer
@@ -134,8 +135,8 @@ export default function CreateQuestion() {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const newOptions = [...options];
-      newOptions[index].text = e.target.value;
-      setOptions(newOptions);
+    newOptions[index].option_text = e.target.value;
+    setOptions(newOptions);
   };
 
   const onSelectAnswer = (
@@ -144,9 +145,9 @@ export default function CreateQuestion() {
   ) => {
     const newOptions = [...options];
     newOptions.forEach((option) => {
-      option.isCorrect = false;
+      option.is_correct = false;
     });
-    newOptions[index].isCorrect = e.target.checked;
+    newOptions[index].is_correct = e.target.checked;
     setOptions(newOptions);
   };
 
@@ -164,7 +165,7 @@ export default function CreateQuestion() {
 
   // ฟังก์ชันสำหรับเพิ่มตัวเลือก
   const handleAddOption = () => {
-    setOptions([...options, { text: "", isCorrect: false }]);
+    setOptions([...options, { option_text: "", is_correct: false }]);
   };
 
   // ฟังก์ชันสำหรับลบตัวเลือก
@@ -199,52 +200,40 @@ export default function CreateQuestion() {
     }
 
     setIsLoading(true);
-    const userId = "087";
-    const createdAt = new Date().toISOString();
+    // const userId = "087";
+    // const createdAt = new Date().toISOString();
 
     const data: NewQuestionData = {
-      skillId,
-      questionText,
-      options,
-      userId,
-      createdAt,
+      skill_id: skillId,
+      image_id: null,
+      user_id: null,
+      question_text: questionText,
     };
 
     try {
-      const response = await fetch("/api/questions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const responseQuestion = await createQuestionQuery(data);
 
-      if (response.ok) {
+      const insertOption = options.map((opt) => ({
+        ...opt,
+        question_id: responseQuestion?.question_id,
+      }));
+
+      const responseOption = await createOptionQuery(insertOption);
+
+      if (responseQuestion?.success && responseOption?.success) {
         toast.success("Question created successfully.");
 
         // Clear form after successful submission
         setSkillId(null);
         setQuestionText("");
         setOptions([
-          { text: "", isCorrect: false },
-          { text: "", isCorrect: false },
-          { text: "", isCorrect: false },
-          { text: "", isCorrect: false },
+          { option_text: "", is_correct: false },
+          { option_text: "", is_correct: false },
+          { option_text: "", is_correct: false },
+          { option_text: "", is_correct: false },
         ]);
-
         setIsPreviewModalOpen(false); // ปิด modal preview หลังจากสร้างสำเร็จ
         router.push("/questions");
-      } else {
-        const errorData = await response.json();
-        if (response.status === 400) {
-          toast.error(errorData.message || "Validation error. Please check your input.");
-        } else if (response.status === 401) {
-          toast.error("Authentication failed. Please login again.");
-        } else if (response.status === 500) {
-          toast.error("Internal server error. Please try again later.");
-        } else {
-          toast.error(`Failed to create question. Status: ${response.status}`);
-        }
       }
     } catch (error) {
       console.error(error);
@@ -257,7 +246,6 @@ export default function CreateQuestion() {
   return (
     <div className="bg-gray-50 min-h-screen py-8">
       <Toaster position="top-right" />
-
       {/* Modal */}
       <Modal
         isOpen={isModalOpen}
@@ -271,7 +259,8 @@ export default function CreateQuestion() {
         confirmText="Leave Page"
         cancelText="Stay"
         actionType="default"
-      /> {/* Clear Form Modal */}
+      />{" "}
+      {/* Clear Form Modal */}
       <Modal
         isOpen={isClearModalOpen}
         onClose={() => setIsClearModalOpen(false)}
@@ -282,7 +271,6 @@ export default function CreateQuestion() {
         cancelText="Cancel"
         actionType="default"
       />
-
       {/* Preview Modal */}
       <Modal
         isOpen={isPreviewModalOpen}
@@ -309,12 +297,12 @@ export default function CreateQuestion() {
                 <div key={index} className="flex items-center mb-2">
                   <input
                     type="radio"
-                    checked={option.isCorrect}
+                    checked={option.is_correct}
                     readOnly
                     className="h-4 w-4 text-blue-600 border-gray-300"
                   />
                   <span className="ml-2">
-                    {String.fromCharCode(65 + index)}. {option.text}
+                    {String.fromCharCode(65 + index)}. {option.option_text}
                   </span>
                 </div>
               ))}
@@ -326,7 +314,6 @@ export default function CreateQuestion() {
         actionType="default"
         isPreview={true}
       />
-
       <div className="max-w-5xl mx-auto px-4">
         {/* Header Section */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
@@ -403,7 +390,7 @@ export default function CreateQuestion() {
                       <input
                         type="radio"
                         id={`isCorrect${index}`}
-                        checked={option.isCorrect}
+                        checked={option.is_correct}
                         onChange={(e) => onSelectAnswer(index, e)}
                         className={`h-4 w-4 text-blue-600 border-gray-300 ${
                           isLoading ? "cursor-not-allowed" : ""
@@ -444,7 +431,7 @@ export default function CreateQuestion() {
                   <input
                     type="text"
                     id={`option${index}`}
-                    value={option.text}
+                    value={option.option_text}
                     onChange={(e) => handleOptionChange(index, e)}
                     maxLength={MAX_OPTION_LENGTH}
                     placeholder="Enter choice text..."

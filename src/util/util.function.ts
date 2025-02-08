@@ -22,7 +22,3 @@ export function convertDateToTH(date: Date | string): string {
 
   return formattedDate;
 }
-
-// ตัวอย่างการใช้งาน
-const date: Date = new Date();
-console.log(convertDateToTH(date)); // เช่น "1 กุมภาพันธ์ 2568"

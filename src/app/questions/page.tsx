@@ -79,6 +79,7 @@ export default function ManageQuestion() {
     questions?.data?.map((question: any) => ({
       ...(question || {}),
       key: question?.question_id,
+      question_text: question?.question_text?.replace(/<[^>]*>/g, "").trim(),
       create_at: convertDateToTH(question?.create_at),
     })) || [];
 
@@ -138,6 +139,13 @@ export default function ManageQuestion() {
 
       return newSkills; // ส่งค่ากลับเพื่อให้ setSelectedSkills อัพเดต
     });
+  };
+
+  const onChangePage = (page: number) => {
+    setDataFilter((prev: any) => ({
+      ...prev,
+      page: page,
+    }));
   };
 
   return (
@@ -231,10 +239,11 @@ export default function ManageQuestion() {
 
             {/* Pagination */}
             {questions?.data?.length > 0 && (
-              <div className="pt-[25px] flex justify-center">
+              <div className="pt-[25px] flex justify-center fixed top-[700px] left-[1000px]">
                 <Pagination
                   initialPage={1}
                   total={Number(questions?.totalPages)}
+                  onChange={onChangePage}
                   color="success"
                   size="lg"
                 />

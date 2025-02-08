@@ -11,3 +11,13 @@ export const getAllQuestionQuery = async (body: any) => {
     return [];
   }
 };
+
+export const createQuestionQuery = async (body: any) => {
+  try {
+    const response = await axios.post(`${HOST_URL}/api/question/create`, body);
+    return response?.data;
+  } catch (error) {
+    console.log(error);
+    return;
+  }
+};
