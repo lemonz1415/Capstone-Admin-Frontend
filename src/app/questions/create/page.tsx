@@ -138,7 +138,7 @@ export default function CreateQuestion() {
       setOptions(newOptions);
   };
 
-  const handleIsCorrectChange = (
+  const onSelectAnswer = (
     index: number,
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -404,7 +404,7 @@ export default function CreateQuestion() {
                         type="radio"
                         id={`isCorrect${index}`}
                         checked={option.isCorrect}
-                        onChange={(e) => handleIsCorrectChange(index, e)}
+                        onChange={(e) => onSelectAnswer(index, e)}
                         className={`h-4 w-4 text-blue-600 border-gray-300 ${
                           isLoading ? "cursor-not-allowed" : ""
                         }`}
