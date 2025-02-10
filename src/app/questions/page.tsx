@@ -9,6 +9,13 @@ import {
   TableRow,
   TableCell,
   getKeyValue,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Button,
+  DateRangePicker,
+  Input,
 } from "@heroui/react";
 
 import {
@@ -17,17 +24,6 @@ import {
   PaginationCursor,
 } from "@heroui/pagination";
 
-import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Button,
-} from "@heroui/react";
-
-import { DateRangePicker } from "@heroui/react";
-
-import { Input } from "@heroui/react";
 import { getAllSkillQuery } from "@/query/skill.query";
 import { getAllQuestionQuery } from "@/query/question.query";
 import { convertDateToTH } from "@/util/util.function";
@@ -135,6 +131,7 @@ export default function ManageQuestion() {
       setDataFilter((prevState: any) => ({
         ...prevState,
         skill_id: newSkills, // อัพเดต skill_id เป็น selectedSkills ใหม่
+        page: 1,
       }));
 
       return newSkills; // ส่งค่ากลับเพื่อให้ setSelectedSkills อัพเดต
@@ -200,6 +197,16 @@ export default function ManageQuestion() {
               </DropdownMenu>
             </Dropdown>
           </div>
+
+          <div className="ml-auto">
+            <Button
+              color="success"
+              variant="flat"
+              onPress={() => router.push("/questions/create")}
+            >
+              Create New +
+            </Button>
+          </div>
         </div>
 
         {questions?.data && (
@@ -239,12 +246,14 @@ export default function ManageQuestion() {
 
             {/* Pagination */}
             {questions?.data?.length > 0 && (
-              <div className="pt-[25px] flex justify-center fixed top-[700px] left-[1000px]">
+              <div className="pt-[25px] flex justify-center fixed top-[700px] left-auto">
                 <Pagination
                   initialPage={1}
+                  page={questions?.page}
                   total={Number(questions?.totalPages)}
                   onChange={onChangePage}
-                  color="success"
+                  variant="faded"
+                  color="default"
                   size="lg"
                 />
               </div>
