@@ -69,7 +69,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     const fetchInitialData = async () => {
       if (mode === "update" && questionID) {
         setIsInitialLoading(true);
-        setIsEditorReady(true);
+        setIsEditorReady(false);
         try {
           const response = await getQuestionsByIDQuery(questionID);
           if (response && response.question) {
@@ -103,7 +103,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
           router.push("/questions");
         } 
       }else {
-        // ถ้าเป็น create mode ให้ set isEditorReady เป็น true เลย
+        // ถ้าเป็น create mode ให้ set isEditorReady เป็น true และ setIsInitialLoading เป็น false เลย
         setIsEditorReady(true);
         setIsInitialLoading(false);
     }
@@ -112,6 +112,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     fetchInitialData();
   }, [mode, questionID, router]);
 
+  // รอให้ isEditorReady เป็น true ก่อน = รอให้ข้อมูลถูก fetch และ assign ให้เรียบร้อยก่อน จึงจะ set ให้ isInitialLoading = false 
   useEffect(() => {
     if (isEditorReady && isInitialLoading) {
       setIsInitialLoading(false);
@@ -194,6 +195,11 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
         router.push(path);
       }
     }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setPendingNavigation(""); // Reset pendingNavigation เมื่อ Modal ถูกปิด
   };
 
   // ฟังก์ชัน validate form
@@ -314,25 +320,35 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
 
     try {
       if (mode === "create") {
-        // console.log("based data", data)
         const responseQuestion = await createQuestionQuery(data);
-        // console.log("create response", responseQuestion)
+
+        if (!responseQuestion?.success) {
+            throw new Error(responseQuestion?.message || "Failed to create question");
+          }
 
         const insertOption = options.map((opt) => ({
           ...opt,
           question_id: responseQuestion?.question_id,
         }));
-        // console.log("option data", insertOption)
+
         const responseOption = await createOptionQuery(insertOption);
-        // console.log("option create response", responseOption)
+        if (!responseOption?.success) {
+            throw new Error(responseOption?.message || "Failed to create options");
+          }
+
         if (responseQuestion?.success && responseOption?.success) {
           toast.success("Question created successfully.");
 
           // Clear form after successful submission
           resetForm();
-          setIsPreviewModalOpen(false); // ปิด modal preview หลังจากสร้างสำเร็จ
+          setIsPreviewModalOpen(false); 
           router.push("/questions");
         }
+        else {
+            toast.error(
+              responseQuestion?.message || responseOption?.message || "Failed to create question"
+            );
+          }
       } else {
         // ส่งข้อมูลทั้ง question และ options ไป
         const updateData = {
@@ -359,9 +375,11 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
           toast.error("An error occurred while updating the question.");
         }
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("An error occurred while creating the question.");
+    } catch (error: any) {
+        console.error(error);
+        toast.error(error.response?.data?.message || error.message || (mode === "create"
+            ? "An error occurred while creating the question."
+            : "An error occurred while updating the question."));
     } finally {
       setIsLoading(false);
     }
@@ -386,10 +404,11 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
       {/* Modal */}
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
         onConfirmFetch={() => {
           router.push(pendingNavigation);
           setIsModalOpen(false);
+          setPendingNavigation("");
         }}
         title="Unsaved Changes"
         message="You have unsaved changes. Are you sure you want to leave this page? Your changes will be lost."
@@ -524,7 +543,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
               <TiptapEditor
                 content={questionText}
                 onChange={onEditorChange}
-                onInit={() => setIsEditorReady(true)}
+                // onInit={() => setIsEditorReady(true)}
                 immediatelyRender={false}
                 editorProps={{
                   attributes: {
