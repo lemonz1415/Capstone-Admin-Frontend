@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { FaTimes } from "react-icons/fa";
 import {
   Table,
   TableHeader,
@@ -26,7 +27,7 @@ import {
 
 import { getAllSkillQuery } from "@/query/skill.query";
 import { getAllQuestionQuery } from "@/query/question.query";
-import { convertDateToTH } from "@/util/util.function";
+import { convertDateToEN } from "@/util/util.function";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function ManageQuestion() {
@@ -77,7 +78,7 @@ export default function ManageQuestion() {
       ...(question || {}),
       key: question?.question_id,
       question_text: question?.question_text?.replace(/<[^>]*>/g, "").trim(),
-      create_at: convertDateToTH(question?.create_at),
+      create_at: convertDateToEN(question?.create_at),
       is_available:
         question?.is_available === 1 ? (
           <p className="text-green-3 font-semibold">Available</p>
@@ -186,6 +187,7 @@ export default function ManageQuestion() {
               onChange={onSetDate}
             />
           </div>
+
           {/* Skills Dropdown */}
           <div className="pl-[50px]">
             <Dropdown>

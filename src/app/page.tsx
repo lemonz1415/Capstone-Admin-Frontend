@@ -5,7 +5,7 @@ export default function Dashboard() {
   const router = useRouter();
 
   return (
-    <div>
+    <div className="min-h-screen py-10 ml-[250px]">
       <div className="p-8 bg-gray-100">
         {/* Dashboard Header */}
         <header className="flex justify-between items-center bg-white shadow-md p-4 mb-8">

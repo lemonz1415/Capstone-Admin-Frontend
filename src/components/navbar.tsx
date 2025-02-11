@@ -1,9 +1,16 @@
 // components/Navbar.js
 "use client";
+import { lowerCase } from "lodash";
 import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const router = useRouter();
+
+  const MENU = [
+    { topic: "Dashboard", path: "/", disable: false },
+    { topic: "Manage Question", path: "/questions", disable: false },
+    { topic: "Manage User", path: "/user", disable: true },
+  ];
 
   return (
     <div className="flex">
@@ -19,38 +26,16 @@ export default function Navbar() {
           </div>
           <nav>
             <ul>
-              <li>
-                <div
-                  className="block py-3 px-4 text-lg font-medium cursor-pointer hover:bg-blue-500 transition duration-300"
-                  onClick={() => router.push("/")}
-                >
-                  Dashboard
-                </div>
-              </li>
-              <li>
-                <div
-                  className="block py-3 px-4 text-lg font-medium cursor-pointer hover:bg-blue-500 transition duration-300"
-                  onClick={() => router.push("/questions")}
-                >
-                  Manage Question
-                </div>
-              </li>
-              <li>
-                <div
-                  className="block py-3 px-4 text-lg font-medium cursor-pointer hover:bg-blue-500 transition duration-300"
-                  onClick={() => router.push("/users")}
-                >
-                  Manage User
-                </div>
-              </li>
-              <li>
-                <div
-                  className="block py-3 px-4 text-lg font-medium cursor-pointer hover:bg-blue-500 transition duration-300"
-                  onClick={() => router.push("/settings")}
-                >
-                  Settings
-                </div>
-              </li>
+              {MENU?.map((m) => (
+                <li key={`menu_${lowerCase(m?.topic)}`}>
+                  <div
+                    className="block py-3 px-4 text-lg font-medium cursor-pointer hover:bg-blue-500 transition duration-300"
+                    onClick={() => router.push(m?.path)}
+                  >
+                    {m?.topic}
+                  </div>
+                </li>
+              ))}
             </ul>
           </nav>
         </div>
