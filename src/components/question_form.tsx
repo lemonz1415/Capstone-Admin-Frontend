@@ -5,7 +5,11 @@ import TiptapEditor from "@/components/TiptapEditor";
 import toast, { Toaster } from "react-hot-toast";
 import Modal from "@/components/modal";
 import { IoChevronBack } from "react-icons/io5";
-import { createQuestionQuery, getQuestionsByIDQuery, editQuestionQuery } from "@/query/question.query";
+import {
+  createQuestionQuery,
+  getQuestionsByIDQuery,
+  editQuestionQuery,
+} from "@/query/question.query";
 import { createOptionQuery } from "@/query/option.query";
 import { getAllSkillQuery } from "@/query/skill.query";
 
@@ -28,11 +32,12 @@ interface NewQuestionData {
   question_text: string;
 }
 
-const MAX_OPTION_LENGTH = 200; // กำหนด max length ของ option
+const MAX_QUESTION_LENGTH = 300; // กำหนด max length ของ question
+const MAX_OPTION_LENGTH = 300; // กำหนด max length ของ option
 export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
   const router = useRouter();
   const [skills, setSkills] = useState<Skill[]>([]); // ดึงข้อมูล skill มาแสดง
-  const [skillId, setSkillId] = useState<number | null>(null);// เก็บ skill ที่ผู้ใช้เลือก
+  const [skillId, setSkillId] = useState<number | null>(null); // เก็บ skill ที่ผู้ใช้เลือก
   const [questionText, setQuestionText] = useState("");
   const [options, setOptions] = useState<QuestionOption[]>([
     { option_text: "", is_correct: false },
@@ -50,7 +55,8 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
-
+  
+  // ข้อมูล question ที่ดึงมาตั้งแต่ต้น (ในกรณีที่เป็น update) เอาไว้เทียบว่าข้อมูลที่ผู้ใช้กรอกผ่าน form มีการเปลี่ยนแปลงจากตอนแรก (ข้อมูลนี้) หรือไม่
   const [initialFormData, setInitialFormData] = useState<{
     skill_id: number | null;
     question_text: string;
@@ -66,22 +72,24 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
           const response = await getQuestionsByIDQuery(questionID);
           if (response && response.question) {
             const initialData = {
-                skill_id: response.skill.skill_id,
-                question_text: response.question,
-                options: response.options.map((opt: any) => ({
-                  option_text: opt.option_text,
-                  is_correct: opt.is_correct === 1
-                }))
-              };
-              setInitialFormData(initialData); // เก็บข้อมูลเดิม เอาไว้เทียบว่ามีการเปลี่ยนแปลงจากที่ดึงมาตอนแรกไหม
+              skill_id: response.skill.skill_id,
+              question_text: response.question,
+              options: response.options.map((opt: any) => ({
+                option_text: opt.option_text,
+                is_correct: opt.is_correct === 1,
+              })),
+            };
+            setInitialFormData(initialData); // เก็บข้อมูลดั้งเดิมของตัว question เอาไว้เทียบการเปลี่ยนแปลง
 
-            // Set initial data เอามาแสดงบน form
+            // Set initial data เอาข้อมูลที่ได้มาแสดงบน form
             setSkillId(response.skill.skill_id);
             setQuestionText(response.question);
-            setOptions(response.options.map((opt: any) => ({
-              option_text: opt.option_text,
-              is_correct: opt.is_correct === 1
-            })));
+            setOptions(
+              response.options.map((opt: any) => ({
+                option_text: opt.option_text,
+                is_correct: opt.is_correct === 1,
+              }))
+            );
           } else {
             toast.error("Failed to load question data");
             router.push("/questions");
@@ -95,7 +103,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
         }
       }
     };
-  
+
     fetchInitialData();
   }, [mode, questionID, router]);
 
@@ -112,7 +120,6 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
   const handleClearForm = () => {
     setIsClearModalOpen(true);
   };
-
 
   const resetForm = () => {
     setSkillId(null);
@@ -148,46 +155,52 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
 
   const isDataUpdate = useCallback(() => {
     if (!initialFormData || mode !== "update") return false;
-    
+
     const isSkillChanged = skillId !== initialFormData.skill_id;
     const isQuestionChanged = questionText !== initialFormData.question_text;
-    const isOptionsChanged = JSON.stringify(options) !== JSON.stringify(initialFormData.options);
-    
+    const isOptionsChanged =
+      JSON.stringify(options) !== JSON.stringify(initialFormData.options);
+
     return isSkillChanged || isQuestionChanged || isOptionsChanged;
   }, [initialFormData, skillId, questionText, options, mode]);
 
   // ฟังก์ชันจัดการการ navigate
   const handleNavigation = (path: string) => {
     if (mode === "create") {
-        // สำหรับ create mode ใช้ isFormChanges()
-        if (isFormChanges()) {
-          setPendingNavigation(path);
-          setIsModalOpen(true);
-        } else {
-          router.push(path);
-        }
+      // สำหรับ create mode ใช้ isFormChanges()
+      if (isFormChanges()) {
+        setPendingNavigation(path);
+        setIsModalOpen(true);
       } else {
-        // สำหรับ update mode ใช้ isDataUpdate()
-        if (isDataUpdate()) {
-          setPendingNavigation(path);
-          setIsModalOpen(true);
-        } else {
-          router.push(path);
-        }
+        router.push(path);
       }
-    };
+    } else {
+      // สำหรับ update mode ใช้ isDataUpdate()
+      if (isDataUpdate()) {
+        setPendingNavigation(path);
+        setIsModalOpen(true);
+      } else {
+        router.push(path);
+      }
+    }
+  };
 
   // ฟังก์ชัน validate form
   const isFormValid = useCallback(() => {
     const hasSkill = skillId !== null;
-    const hasQuestionText = questionText.trim() !== "";
+    // เช็คความยาวของ question_text
+    const questionPlainText = questionText.replace(/<[^>]*>/g, "").trim();
+    const hasQuestionText = questionPlainText !== "";
+    const isQuestionLengthValid =
+      questionPlainText.length <= MAX_QUESTION_LENGTH;
+
     const allOptionsHaveText = options.every(
       (option) => option.option_text.trim() !== ""
     );
     const hasCorrectAnswer = options.some((option) => option.is_correct);
 
     return (
-      hasSkill && hasQuestionText && allOptionsHaveText && hasCorrectAnswer
+      hasSkill && hasQuestionText && isQuestionLengthValid && allOptionsHaveText && hasCorrectAnswer
     );
   }, [skillId, questionText, options]);
 
@@ -282,11 +295,11 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     setIsLoading(true);
 
     const data: NewQuestionData = {
-        skill_id: skillId,
-        image_id: null,
-        user_id: null,
-        question_text: questionText,
-      };
+      skill_id: skillId,
+      image_id: null,
+      user_id: null,
+      question_text: questionText,
+    };
 
     try {
       if (mode === "create") {
@@ -309,8 +322,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
           setIsPreviewModalOpen(false); // ปิด modal preview หลังจากสร้างสำเร็จ
           router.push("/questions");
         }
-      }
-      else {
+      } else {
         // ส่งข้อมูลทั้ง question และ options ไป
         const updateData = {
           question_id: parseInt(questionID!),
@@ -318,10 +330,10 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
           image_id: null,
           user_id: null,
           question_text: questionText,
-          options: options.map(opt => ({
+          options: options.map((opt) => ({
             option_text: opt.option_text,
-            is_correct: opt.is_correct 
-          }))
+            is_correct: opt.is_correct,
+          })),
         };
         try {
           const response = await editQuestionQuery(updateData);
@@ -336,7 +348,6 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
           toast.error("An error occurred while updating the question.");
         }
       }
-      
     } catch (error) {
       console.error(error);
       toast.error("An error occurred while creating the question.");
@@ -345,13 +356,13 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     }
   };
 
-    if (isInitialLoading) {
-     return (
-       <div className="flex items-center justify-center min-h-screen">
-         <div className="text-gray-600">Loading question data...</div>
-       </div>
-     );
-   }
+  if (isInitialLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-gray-600">Loading question data...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen py-8">
@@ -606,7 +617,11 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
                 <button
                   type="button"
                   onClick={handlePreview}
-                  disabled={!isFormValid() || isLoading || (mode === "update" && !isDataUpdate())}
+                  disabled={
+                    !isFormValid() ||
+                    isLoading ||
+                    (mode === "update" && !isDataUpdate())
+                  }
                   className={`px-8 py-3 border border-blue-300 rounded-lg transition duration-150 ease-in-out
         ${
           !isFormValid() || isLoading || (mode === "update" && !isDataUpdate())
@@ -618,10 +633,16 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
                 </button>
                 <button
                   type="submit"
-                  disabled={!isFormValid() || isLoading || (mode === "update" && !isDataUpdate())}
+                  disabled={
+                    !isFormValid() ||
+                    isLoading ||
+                    (mode === "update" && !isDataUpdate())
+                  }
                   className={`inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white 
         ${
-          isFormValid() && !isLoading && (mode === "create" || (mode === "update" && isDataUpdate()))
+          isFormValid() &&
+          !isLoading &&
+          (mode === "create" || (mode === "update" && isDataUpdate()))
             ? "bg-teal-600 hover:bg-teal-700"
             : "bg-gray-400 cursor-not-allowed"
         }
