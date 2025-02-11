@@ -31,8 +31,8 @@ interface NewQuestionData {
 const MAX_OPTION_LENGTH = 200; // กำหนด max length ของ option
 export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
   const router = useRouter();
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [skillId, setSkillId] = useState<number | null>(null);
+  const [skills, setSkills] = useState<Skill[]>([]); // ดึงข้อมูล skill มาแสดง
+  const [skillId, setSkillId] = useState<number | null>(null);// เก็บ skill ที่ผู้ใช้เลือก
   const [questionText, setQuestionText] = useState("");
   const [options, setOptions] = useState<QuestionOption[]>([
     { option_text: "", is_correct: false },
@@ -73,9 +73,9 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
                   is_correct: opt.is_correct === 1
                 }))
               };
-              setInitialFormData(initialData); // เก็บข้อมูลเดิม
+              setInitialFormData(initialData); // เก็บข้อมูลเดิม เอาไว้เทียบว่ามีการเปลี่ยนแปลงจากที่ดึงมาตอนแรกไหม
 
-            // Set initial data
+            // Set initial data เอามาแสดงบน form
             setSkillId(response.skill.skill_id);
             setQuestionText(response.question);
             setOptions(response.options.map((opt: any) => ({
@@ -290,20 +290,17 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
 
     try {
       if (mode === "create") {
-        console.log("based data", data)
+        // console.log("based data", data)
         const responseQuestion = await createQuestionQuery(data);
-        console.log("create response", responseQuestion)
-        // if (!responseQuestion?.question_id) {
-        //     throw new Error("Failed to create question: No question ID returned");
-        //   }
+        // console.log("create response", responseQuestion)
 
         const insertOption = options.map((opt) => ({
           ...opt,
           question_id: responseQuestion?.question_id,
         }));
-        console.log("option data", insertOption)
+        // console.log("option data", insertOption)
         const responseOption = await createOptionQuery(insertOption);
-        console.log("option create response", responseOption)
+        // console.log("option create response", responseOption)
         if (responseQuestion?.success && responseOption?.success) {
           toast.success("Question created successfully.");
 
