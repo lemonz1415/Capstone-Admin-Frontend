@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Table,
   TableHeader,
@@ -27,6 +27,7 @@ import {
 import { getAllSkillQuery } from "@/query/skill.query";
 import { getAllQuestionQuery } from "@/query/question.query";
 import { convertDateToTH } from "@/util/util.function";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function ManageQuestion() {
   const router = useRouter();
@@ -77,6 +78,12 @@ export default function ManageQuestion() {
       key: question?.question_id,
       question_text: question?.question_text?.replace(/<[^>]*>/g, "").trim(),
       create_at: convertDateToTH(question?.create_at),
+      is_available:
+        question?.is_available === 1 ? (
+          <p className="text-green-3 font-semibold">Available</p>
+        ) : (
+          <p className="text-red-3 font-semibold">Not available</p>
+        ),
     })) || [];
 
   const columns = [
@@ -95,6 +102,10 @@ export default function ManageQuestion() {
     {
       key: "create_at",
       label: "CREATED AT",
+    },
+    {
+      key: "is_available",
+      label: "AVAILABLE STATUS",
     },
   ];
 
@@ -145,6 +156,10 @@ export default function ManageQuestion() {
     }));
   };
 
+  const onPreview = (keys: any) => {
+    const questionID = new Set(keys);
+    return router.push(`/questions/${[...questionID][0]}`);
+  };
   return (
     <div className="bg-gray-50 min-h-screen py-10 ml-[250px]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -219,7 +234,7 @@ export default function ManageQuestion() {
                 selectionBehavior="replace"
                 selectionMode="single"
                 color="success"
-                onSelectionChange={() => console.log("sss")}
+                onSelectionChange={onPreview}
               >
                 <TableHeader columns={columns}>
                   {(column) => (
