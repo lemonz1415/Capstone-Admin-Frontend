@@ -55,7 +55,8 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
-  
+  const [isEditorReady, setIsEditorReady] = useState(false);
+
   // ข้อมูล question ที่ดึงมาตั้งแต่ต้น (ในกรณีที่เป็น update) เอาไว้เทียบว่าข้อมูลที่ผู้ใช้กรอกผ่าน form มีการเปลี่ยนแปลงจากตอนแรก (ข้อมูลนี้) หรือไม่
   const [initialFormData, setInitialFormData] = useState<{
     skill_id: number | null;
@@ -68,6 +69,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     const fetchInitialData = async () => {
       if (mode === "update" && questionID) {
         setIsInitialLoading(true);
+        setIsEditorReady(true);
         try {
           const response = await getQuestionsByIDQuery(questionID);
           if (response && response.question) {
@@ -90,6 +92,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
                 is_correct: opt.is_correct === 1,
               }))
             );
+            setIsEditorReady(true);
           } else {
             toast.error("Failed to load question data");
             router.push("/questions");
@@ -98,14 +101,22 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
           console.error("Error fetching question:", error);
           toast.error("Error loading question data");
           router.push("/questions");
-        } finally {
-          setIsInitialLoading(false);
-        }
-      }
-    };
+        } 
+      }else {
+        // ถ้าเป็น create mode ให้ set isEditorReady เป็น true เลย
+        setIsEditorReady(true);
+        setIsInitialLoading(false);
+    }
+};
 
     fetchInitialData();
   }, [mode, questionID, router]);
+
+  useEffect(() => {
+    if (isEditorReady && isInitialLoading) {
+      setIsInitialLoading(false);
+    }
+  }, [isEditorReady, isInitialLoading]);
 
   useEffect(() => {
     const getAllSkill = async () => {
@@ -356,13 +367,18 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     }
   };
 
-  if (isInitialLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">Loading question data...</div>
+  // แสดงหน้า load รอจนตัว editor และ ข้อมูลถูกดึงมา ( กรณีเป็น update ) จนเสร็จก่อนค่อยแสดงทั้งหมดพร้อมกัน 
+  if (isInitialLoading || !isEditorReady) {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-gray-600">
+        {mode === "create" 
+          ? "Loading create question form..." 
+          : "Loading update question form with data..."}
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div className="bg-gray-50 min-h-screen py-8">
@@ -508,6 +524,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
               <TiptapEditor
                 content={questionText}
                 onChange={onEditorChange}
+                onInit={() => setIsEditorReady(true)}
                 immediatelyRender={false}
                 editorProps={{
                   attributes: {

@@ -14,6 +14,7 @@ import { MdFormatColorText, MdUndo, MdRedo } from 'react-icons/md'
 interface TiptapEditorProps {
   content: string;
   onChange: (content: string) => void;
+  onInit?: () => void;
   immediatelyRender?: boolean;
   editorProps?: {
     attributes?: {
@@ -22,7 +23,7 @@ interface TiptapEditorProps {
   };
 }
 
-const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProps = {
+const TiptapEditor = ({ content, onChange, onInit, immediatelyRender = false, editorProps = {
   attributes: {
     class: 'prose focus:outline-none max-w-full'
   }
@@ -45,6 +46,19 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProp
     editorProps: editorProps,
     immediatelyRender: immediatelyRender
   });
+
+  useEffect(() => {
+    if (editor) {
+      console.log("Editor initialized");
+      onInit?.();
+    }
+    
+    return () => {
+      if (editor) {
+        editor.destroy();
+      }
+    };
+  }, [editor, onInit]);
 
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
