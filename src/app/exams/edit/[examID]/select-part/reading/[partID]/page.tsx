@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import QuestionForm from "@/components/question_form";
+import QuestionForm from "@/components/old_question_form";
 import PageHeading from "@/components/page_heading";
 import { useParams, useRouter } from "next/navigation";
 import { getExamPreviewQuery } from "@/query/exam.query";
