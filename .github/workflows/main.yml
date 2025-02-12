@@ -47,8 +47,8 @@ jobs:
 
         # Build Docker Image
         echo "Building Docker image $IMAGE_NAME:$IMAGE_TAG..."
-        docker build -f Dockerfile \
-          -t $IMAGE_NAME:$IMAGE_TAG 
+        docker build -f Dockerfile -t $IMAGE_NAME:$IMAGE_TAG .
+
 
         # Push Docker Image to Docker Hub
         echo "Pushing Docker image to Docker Hub..."
