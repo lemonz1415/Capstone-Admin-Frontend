@@ -1,609 +1,702 @@
 "use client";
-
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import TinyMCEEditor from "./TinyMCEEditor";
+import { useRouter } from "next/navigation";
+import { useState, useCallback, useEffect } from "react";
+import TiptapEditor from "@/components/TiptapEditor";
+import toast, { Toaster } from "react-hot-toast";
 import Modal from "@/components/modal";
-import {
-  faCircleQuestion,
-  faCircleXmark,
-} from "@fortawesome/free-solid-svg-icons";
+import { IoChevronBack } from "react-icons/io5";
 import {
   createQuestionQuery,
-  getQuestionsByExamIDAndTypeIDQuery,
+  getQuestionsByIDQuery,
   editQuestionQuery,
-  getSkillAllQuery,
-  deleteQuestionQuery,
-} from "@/query/old-question.query";
-import { getExamPreviewQuery } from "@/query/exam.query";
-import classNames from "classnames";
+} from "@/query/question.query";
+import { createOptionQuery } from "@/query/option.query";
+import { getAllSkillQuery } from "@/query/skill.query";
 
-export default function QuestionForm({
-  examID,
-  partID,
-  mode = "create",
-}: {
-  examID: number;
-  partID: number;
-  mode?: "create" | "edit";
-}) {
+interface QuestionFormProps {
+  mode: "create" | "update";
+  questionID?: string; // สำหรับ update mode
+}
+interface Skill {
+  skill_id: number;
+  skill_name: string;
+}
+interface QuestionOption {
+  option_text: string;
+  is_correct: boolean;
+}
+interface NewQuestionData {
+  skill_id: number | null;
+  user_id: number | null;
+  image_id: number | null;
+  question_text: string;
+}
+
+const MAX_QUESTION_LENGTH = 300; // กำหนด max length ของ question
+const MAX_OPTION_LENGTH = 300; // กำหนด max length ของ option
+export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const from = searchParams.get("from");
+  const [skills, setSkills] = useState<Skill[]>([]); // ดึงข้อมูล skill มาแสดง
+  const [skillId, setSkillId] = useState<number | null>(null); // เก็บ skill ที่ผู้ใช้เลือก
+  const [questionText, setQuestionText] = useState("");
+  const [options, setOptions] = useState<QuestionOption[]>([
+    { option_text: "", is_correct: false },
+    { option_text: "", is_correct: false },
+    { option_text: "", is_correct: false },
+    { option_text: "", is_correct: false },
+  ]);
 
-  const [sectionName, setSectionName] = useState("");
-  const [partName, setPartName] = useState("");
-  const [skillID, setSkillID] = useState<number | "">("");
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [questionIndex, setQuestionIndex] = useState<number>(0);
-  const [questionCount, setQuestionCount] = useState<number>(0);
-  const [questionTexts, setQuestionTexts] = useState("");
-  const [choices, setChoices] = useState({
-    choiceA: "",
-    choiceB: "",
-    choiceC: "",
-    choiceD: "",
-  });
-  const [answer, setAnswer] = useState("");
-  const [questionID, setquestionID] = useState(1);
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+
+  const [pendingNavigation, setPendingNavigation] = useState("");
+
+  // Loading state
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-  const [isNavigateModalOpen, setIsNavigateModalOpen] = useState(false);
-  const [isNextModalOpen, setIsNextModalOpen] = useState(false);
-  const [isPreviousModalOpen, setIsPreviousModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [skills, setSkills] = useState<
-    { skillID: number; skillName: string }[]
-  >([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [isEditorReady, setIsEditorReady] = useState(false);
 
-  const [questionTextErr, setQuestionTextErr] = useState("");
+  // ข้อมูล question ที่ดึงมาตั้งแต่ต้น (ในกรณีที่เป็น update) เอาไว้เทียบว่าข้อมูลที่ผู้ใช้กรอกผ่าน form มีการเปลี่ยนแปลงจากตอนแรก (ข้อมูลนี้) หรือไม่
+  const [initialFormData, setInitialFormData] = useState<{
+    skill_id: number | null;
+    question_text: string;
+    options: QuestionOption[];
+  } | null>(null);
 
-  const [originalData, setOriginalData] = useState({
-    skillID: "",
-    questionTexts: "",
-    choices: {
-      choiceA: "",
-      choiceB: "",
-      choiceC: "",
-      choiceD: "",
-    },
-    answer: "",
-  });
+  // fetch data สำหรับ update mode
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      if (mode === "update" && questionID) {
+        setIsInitialLoading(true);
+        setIsEditorReady(false);
+        try {
+          const response = await getQuestionsByIDQuery(questionID);
+          if (response && response.question) {
+            const initialData = {
+              skill_id: response.skill.skill_id,
+              question_text: response.question,
+              options: response.options.map((opt: any) => ({
+                option_text: opt.option_text,
+                is_correct: opt.is_correct === 1,
+              })),
+            };
+            setInitialFormData(initialData); // เก็บข้อมูลดั้งเดิมของตัว question เอาไว้เทียบการเปลี่ยนแปลง
 
-  //util
-  const isFieldEmpty = (fields: any) => {
-    return Object.values(fields).some((field) => !field);
-  };
+            // Set initial data เอาข้อมูลที่ได้มาแสดงบน form
+            setSkillId(response.skill.skill_id);
+            setQuestionText(response.question);
+            setOptions(
+              response.options.map((opt: any) => ({
+                option_text: opt.option_text,
+                is_correct: opt.is_correct === 1,
+              }))
+            );
+            setIsEditorReady(true);
+          } else {
+            toast.error("Failed to load question data");
+            router.push("/questions");
+          }
+        } catch (error) {
+          console.error("Error fetching question:", error);
+          toast.error("Error loading question data");
+          router.push("/questions");
+        } 
+      }else {
+        // ถ้าเป็น create mode ให้ set isEditorReady เป็น true และ setIsInitialLoading เป็น false เลย
+        setIsEditorReady(true);
+        setIsInitialLoading(false);
+    }
+};
 
-  const isDataChanged =
-    skillID !== originalData.skillID ||
-    questionTexts !== originalData.questionTexts ||
-    Object.values(choices).some(
-      (v, index) => v !== Object.values(originalData.choices)[index]
-    ) ||
-    answer !== originalData.answer;
+    fetchInitialData();
+  }, [mode, questionID, router]);
+
+  // รอให้ isEditorReady เป็น true ก่อน = รอให้ข้อมูลถูก fetch และ assign ให้เรียบร้อยก่อน จึงจะ set ให้ isInitialLoading = false 
+  useEffect(() => {
+    if (isEditorReady && isInitialLoading) {
+      setIsInitialLoading(false);
+    }
+  }, [isEditorReady, isInitialLoading]);
 
   useEffect(() => {
-    const fetchSkills = async () => {
-      try {
-        const fetchedSkills = await getSkillAllQuery();
-        setSkills(fetchedSkills);
-      } catch (error) {
-        toast.error("Failed to load skills.");
+    const getAllSkill = async () => {
+      const response = await getAllSkillQuery();
+      if (response) {
+        setSkills(response);
       }
     };
-
-    fetchSkills();
+    getAllSkill();
   }, []);
 
-  const fetchExamPreview = async () => {
-    try {
-      const previewData = await getExamPreviewQuery(examID);
-      const partData = previewData.find((part: any) => part.typeID === partID);
-      if (partData) {
-        setSectionName(partData.sectionName);
-        setPartName(partData.partName);
-        const count = previewData.filter(
-          (part: any) => part.typeID === partID
-        ).length;
-      } else {
-        toast.error("Part not found in exam preview.");
-      }
-    } catch (error) {
-      toast.error("An error occurred while fetching exam preview.");
-    }
+  const handleClearForm = () => {
+    setIsClearModalOpen(true);
   };
 
-  const fetchExistingQuestion = async () => {
-    try {
-      const questionData = await getQuestionsByExamIDAndTypeIDQuery(
-        examID,
-        partID
-      );
-      if (questionData) {
-        setQuestions(questionData);
-        setQuestionCount(questionData.length);
-      } else {
-        toast.error("Question not found.");
-        router.push("/exams");
-      }
-    } catch (error) {
-      toast.error("An error occurred while fetching exam data.");
-    } finally {
-      setIsLoading(false);
-    }
+  const resetForm = () => {
+    setSkillId(null);
+    setQuestionText("");
+    setOptions([
+      { option_text: "", is_correct: false },
+      { option_text: "", is_correct: false },
+      { option_text: "", is_correct: false },
+      { option_text: "", is_correct: false },
+    ]);
   };
 
-  const getEditData = () => {
-    if (mode === "edit" && questions.length > 0) {
-      //data in edit
-      const currentQuestion = questions[questionIndex];
-      setQuestionTexts(currentQuestion?.questionTexts);
-      setChoices({
-        choiceA: currentQuestion?.choiceA,
-        choiceB: currentQuestion?.choiceB,
-        choiceC: currentQuestion?.choiceC,
-        choiceD: currentQuestion?.choiceD,
-      });
-      setAnswer(currentQuestion?.answer);
-      setquestionID(currentQuestion?.questionID);
-      setSkillID(currentQuestion?.skillID);
-
-      //data in check
-      setOriginalData({
-        skillID: currentQuestion?.skillID,
-        questionTexts: currentQuestion?.questionTexts,
-        choices: {
-          choiceA: currentQuestion?.choiceA,
-          choiceB: currentQuestion?.choiceB,
-          choiceC: currentQuestion?.choiceC,
-          choiceD: currentQuestion?.choiceD,
-        },
-        answer: currentQuestion?.answer,
-      });
-    }
+  const confirmClearForm = () => {
+    resetForm();
+    setIsClearModalOpen(false);
+    toast.success("Form cleared successfully");
   };
 
-  useEffect(() => {
-    fetchExamPreview();
-    fetchExistingQuestion();
-  }, [examID, partID, mode]);
+  const isFormChanges = useCallback(() => {
+    // ตรวจสอบว่ามีการเปลี่ยนแปลงและมีข้อมูลจริงๆ
+    const hasSkillChange = skillId !== null;
 
-  useEffect(() => {
-    getEditData();
-  }, [questions, questionIndex, mode]);
+    // ตรวจสอบว่า questionText มีเนื้อหาจริงๆ
+    const hasQuestionChange = questionText.trim() !== "";
 
-  const isFormValid = () => {
-    const pattern = /<[^>]+>|&[^;]+;/g;
-    const questionTextsCheck =
-      questionTexts?.replace(pattern, "").trim() && isDataChanged;
-
-    const choicesCheck = [
-      choices?.choiceA,
-      choices?.choiceB,
-      choices?.choiceC,
-      choices?.choiceD,
-      answer,
-    ].every((choice) => choice?.trim());
-
-    return Boolean(
-      skillID && questionTextsCheck && choicesCheck && isDataChanged
+    // ตรวจสอบว่ามี option ที่มีข้อความหรือถูกเลือกจริงๆ
+    const hasOptionsChange = options.some(
+      (option) => option.option_text.trim() !== "" || option.is_correct
     );
-  };
 
-  const handlePrevious = async () => {
-    if (questionIndex > 0) {
-      if (isDataChanged) {
-        setIsPreviousModalOpen(true);
+    return hasSkillChange || hasQuestionChange || hasOptionsChange;
+  }, [skillId, questionText, options]);
+
+  const isDataUpdate = useCallback(() => {
+    if (!initialFormData || mode !== "update") return false;
+
+    const isSkillChanged = skillId !== initialFormData.skill_id;
+    const isQuestionChanged = questionText !== initialFormData.question_text;
+    const isOptionsChanged =
+      JSON.stringify(options) !== JSON.stringify(initialFormData.options);
+
+    return isSkillChanged || isQuestionChanged || isOptionsChanged;
+  }, [initialFormData, skillId, questionText, options, mode]);
+
+  // ฟังก์ชันจัดการการ navigate
+  const handleNavigation = (path: string) => {
+    if (mode === "create") {
+      // สำหรับ create mode ใช้ isFormChanges()
+      if (isFormChanges()) {
+        setPendingNavigation(path);
+        setIsModalOpen(true);
       } else {
-        await setQuestionIndex(questionIndex - 1);
-        setIsSubmitted(false);
-        // clearForm();
+        router.push(path);
+      }
+    } else {
+      // สำหรับ update mode ใช้ isDataUpdate()
+      if (isDataUpdate()) {
+        setPendingNavigation(path);
+        setIsModalOpen(true);
+      } else {
+        router.push(path);
       }
     }
   };
 
-  const handleNext = async () => {
-    if (questionIndex < questionCount - 1) {
-      if (isDataChanged) {
-        setIsNextModalOpen(true);
-      } else {
-        await setQuestionIndex(questionIndex + 1);
-        setIsSubmitted(false);
-        // clearForm();
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setPendingNavigation(""); // Reset pendingNavigation เมื่อ Modal ถูกปิด
+  };
+
+  // ฟังก์ชัน validate form
+  const isFormValid = useCallback(() => {
+    const hasSkill = skillId !== null;
+    // เช็คความยาวของ question_text
+    const questionPlainText = questionText.replace(/<[^>]*>/g, "").trim();
+    const hasQuestionText = questionPlainText !== "";
+    const isQuestionLengthValid =
+      questionPlainText.length <= MAX_QUESTION_LENGTH;
+
+    const allOptionsHaveText = options.every(
+      (option) => option.option_text.trim() !== ""
+    );
+    const hasCorrectAnswer = options.some((option) => option.is_correct);
+
+    return (
+      hasSkill && hasQuestionText && isQuestionLengthValid && allOptionsHaveText && hasCorrectAnswer
+    );
+  }, [skillId, questionText, options]);
+
+  const onSelectSkill = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === "") {
+      setSkillId(null);
+      return;
+    }
+    const selectedSkillId = parseInt(value);
+    setSkillId(selectedSkillId);
+  };
+
+  const onEditorChange = (content: string) => {
+    // ลบ HTML tags และ trim whitespace
+    const plainText = content.replace(/<[^>]*>/g, "").trim();
+
+    // ถ้าไม่มีข้อความเหลืออยู่เลย ให้เซ็ตเป็นค่าว่าง
+    if (plainText === "") {
+      setQuestionText("");
+    } else {
+      // ถ้ามีข้อความ ให้เก็บค่า HTML ตามปกติ
+      if (content !== questionText) {
+        setQuestionText(content);
       }
     }
   };
 
-  const clearForm = () => {
-    setSkillID("");
-    setQuestionTexts("");
-    setChoices({
-      choiceA: "",
-      choiceB: "",
-      choiceC: "",
-      choiceD: "",
+  const handleOptionChange = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const newOptions = [...options];
+    newOptions[index].option_text = e.target.value;
+    setOptions(newOptions);
+  };
+
+  const onSelectAnswer = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const newOptions = [...options];
+    newOptions.forEach((option) => {
+      option.is_correct = false;
     });
-    setAnswer("");
+    newOptions[index].is_correct = e.target.checked;
+    setOptions(newOptions);
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setError(null);
-    setIsLoading(true);
+  // ฟังก์ชันสำหรับสลับลำดับตัวเลือก
+  const handleMoveOption = (fromIndex: number, direction: "up" | "down") => {
+    const toIndex = direction === "up" ? fromIndex - 1 : fromIndex + 1;
+    if (toIndex < 0 || toIndex >= options.length) return;
 
-    const payload = {
-      examID,
-      typeID: partID,
-      skillID,
-      questionTexts,
-      choiceA: choices.choiceA,
-      choiceB: choices.choiceB,
-      choiceC: choices.choiceC,
-      choiceD: choices.choiceD,
-      answer,
-    };
+    const newOptions = [...options];
+    const temp = newOptions[fromIndex];
+    newOptions[fromIndex] = newOptions[toIndex];
+    newOptions[toIndex] = temp;
+    setOptions(newOptions);
+  };
 
-    if (isFieldEmpty(payload)) {
-      setError("All fields are required.");
-      setIsLoading(false);
+  // ฟังก์ชันสำหรับเพิ่มตัวเลือก
+  const handleAddOption = () => {
+    setOptions([...options, { option_text: "", is_correct: false }]);
+  };
+
+  // ฟังก์ชันสำหรับลบตัวเลือก
+  const handleRemoveOption = (index: number) => {
+    if (options.length <= 2) {
+      toast.error("Minimum 2 options required");
+      return;
+    }
+    const newOptions = options.filter((_, i) => i !== index);
+    setOptions(newOptions);
+  };
+
+  const handlePreview = () => {
+    setIsPreviewModalOpen(true);
+  };
+
+  // ฟังก์ชัน submit
+  const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    if (!isFormValid()) {
+      toast.error("Please fill in all fields correctly.");
       return;
     }
 
-    try {
-      let response;
-
-      if (mode === "edit" && questionID) {
-        const editPayload = { ...payload, questionID };
-        response = await editQuestionQuery(editPayload as any);
-      } else {
-        response = await createQuestionQuery(payload as any);
-      }
-
-      // if (mode === "edit") {
-      //   response = await createQuestionQuery(payload as any);
-      // } else {
-      //   response = await createQuestionQuery(payload as any);
-      // }
-
-      if (response?.success) {
-        toast.success(
-          `Question ${mode === "create" ? "created" : "updated"} successfully!`
-        );
-
-        if (mode === "create") {
-          clearForm();
-        }
-
-        //refetch
-        fetchExistingQuestion();
-
-        setIsSubmitted(true);
-      } else {
-        throw new Error("Failed to submit question.");
-      }
-    } catch (err: any) {
-      setError(err.message || "An error occurred.");
-      toast.error(err.message || "An error occurred.");
-    } finally {
-      setIsLoading(false);
-      setIsSubmitModalOpen(false);
-    }
-  };
-
-  const handleNavigation = () => {
-    if (isDataChanged && isNavigateModalOpen === false) {
-      return setIsNavigateModalOpen(true);
-    }
-
-    if (mode === "edit") {
-      router.push(
-        `/exams/view/select-part/${sectionName.toLowerCase()}?examID=${examID}&partID=${partID}`
-      );
-    } else {
-      if (from === "view" && mode === "create") {
-        router.push(
-          `/exams/view/select-part/${sectionName.toLowerCase()}?examID=${examID}&partID=${partID}`
-        );
-      } else {
-        router.push(`/exams/create/select-part?examID=${examID}`);
-      }
-    }
-    setIsNavigateModalOpen(false);
-  };
-
-  const handleOpenDeleteModal = () => {
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleDeleteQuestion = async () => {
     setIsLoading(true);
+
+    const data: NewQuestionData = {
+      skill_id: skillId,
+      image_id: null,
+      user_id: null,
+      question_text: questionText,
+    };
+
     try {
-      const response = await deleteQuestionQuery(questionID);
-      //refetch
-      await fetchExistingQuestion();
+      if (mode === "create") {
+        const responseQuestion = await createQuestionQuery(data);
 
-      const questionData = await getQuestionsByExamIDAndTypeIDQuery(
-        examID,
-        partID
-      );
+        if (!responseQuestion?.success) {
+            throw new Error(responseQuestion?.message || "Failed to create question");
+          }
 
-      if (response?.success && questionData?.length > 0) {
-        toast.success("Question deleted successfully.");
-        if (questionIndex > 0) {
-          setQuestionIndex(questionIndex - 1);
+        const insertOption = options.map((opt) => ({
+          ...opt,
+          question_id: responseQuestion?.question_id,
+        }));
+
+        const responseOption = await createOptionQuery(insertOption);
+        if (!responseOption?.success) {
+            throw new Error(responseOption?.message || "Failed to create options");
+          }
+
+        if (responseQuestion?.success && responseOption?.success) {
+          toast.success("Question created successfully.");
+
+          // Clear form after successful submission
+          resetForm();
+          setIsPreviewModalOpen(false); 
+          router.push("/questions");
         }
-      } else if (response?.success && questionData?.length === 0) {
-        router.push(`/exams/view/select-part?examID=${examID}`);
+        else {
+            toast.error(
+              responseQuestion?.message || responseOption?.message || "Failed to create question"
+            );
+          }
       } else {
-        toast.error("Failed to delete the question.");
+        // ส่งข้อมูลทั้ง question และ options ไป
+        const updateData = {
+          question_id: parseInt(questionID!),
+          skill_id: skillId,
+          image_id: null,
+          user_id: null,
+          question_text: questionText,
+          options: options.map((opt) => ({
+            option_text: opt.option_text,
+            is_correct: opt.is_correct,
+          })),
+        };
+        try {
+          const response = await editQuestionQuery(updateData);
+          if (response?.success) {
+            toast.success("Question updated successfully.");
+            router.push("/questions");
+          } else {
+            toast.error(response?.message || "Failed to update question.");
+          }
+        } catch (error) {
+          console.error("Error updating question:", error);
+          toast.error("An error occurred while updating the question.");
+        }
       }
-    } catch (error) {
-      toast.error("An error occurred while deleting the question.");
+    } catch (error: any) {
+        console.error(error);
+        toast.error(error.response?.data?.message || error.message || (mode === "create"
+            ? "An error occurred while creating the question."
+            : "An error occurred while updating the question."));
     } finally {
       setIsLoading(false);
-      setIsDeleteModalOpen(false);
     }
   };
 
-  console.log(questionTexts?.length);
+  // แสดงหน้า load รอจนตัว editor และ ข้อมูลถูกดึงมา ( กรณีเป็น update ) จนเสร็จก่อนค่อยแสดงทั้งหมดพร้อมกัน 
+  if (isInitialLoading || !isEditorReady) {
   return (
-    <div className="bg-white shadow-md rounded-lg p-8 space-y-6">
-      <ToastContainer />
+    <div className="flex items-center justify-center min-h-screen ml-[250px]">
+      <div className="text-gray-600">
+        {mode === "create" 
+          ? "Loading create question form..." 
+          : "Loading update question form with data..."}
+      </div>
+    </div>
+  );
+}
+
+  return (
+    <div className="bg-gray-50 min-h-screen py-8 ml-[250px]">
+      <Toaster position="top-right" />
+      {/* Modal */}
       <Modal
-        isOpen={isSubmitModalOpen}
-        onClose={() => !isLoading && setIsSubmitModalOpen(false)}
-        onConfirmFetch={handleSubmit}
-        title="Confirm Submission"
-        message="Are you sure you want to submit this question?"
-        icon={faCircleQuestion}
-        iconColor="text-blue-500"
-        confirmText="Submit"
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onConfirmFetch={() => {
+          router.push(pendingNavigation);
+          setIsModalOpen(false);
+          setPendingNavigation("");
+        }}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to leave this page? Your changes will be lost."
+        confirmText="Leave Page"
+        cancelText="Stay"
+        actionType="default"
+      />{" "}
+      {/* Clear Form Modal */}
+      <Modal
+        isOpen={isClearModalOpen}
+        onClose={() => setIsClearModalOpen(false)}
+        onConfirmFetch={confirmClearForm}
+        title="Clear Form"
+        message="Are you sure you want to clear all form data? This action cannot be undone."
+        confirmText="Clear"
         cancelText="Cancel"
+        actionType="default"
       />
+      {/* Preview Modal */}
       <Modal
-        isOpen={isNavigateModalOpen}
-        onClose={() => !isLoading && setIsNavigateModalOpen(false)}
-        onConfirmFetch={handleNavigation}
-        title="Unsaved Changes"
-        message="You have unsaved changes. Are you sure you want to leave this page?"
-        icon={faCircleQuestion}
-        iconColor="text-blue-500"
-        confirmText="Yes"
-        cancelText="No"
-      />
-      <Modal
-        isOpen={isNextModalOpen}
-        onClose={() => setIsNextModalOpen(false)}
-        onConfirmFetch={async () => {
-          setIsNextModalOpen(false);
-          await setQuestionIndex(questionIndex + 1);
-          setIsSubmitted(false);
-        }}
-        title="Unsaved Changes"
-        message="You have unsaved changes. Are you sure you want to navigate away from this page?"
-        icon={faCircleQuestion}
-        iconColor="text-blue-500"
-        confirmText="Yes"
-        cancelText="No"
-      />
-      <Modal
-        isOpen={isPreviousModalOpen}
-        onClose={() => {
-          setIsPreviousModalOpen(false);
-        }}
-        onConfirmFetch={async () => {
-          setIsPreviousModalOpen(false);
-          await setQuestionIndex(questionIndex - 1);
-          setIsSubmitted(false);
-        }}
-        title="Unsaved Changes"
-        message="You have unsaved changes. Are you sure you want to navigate away from this page?"
-        icon={faCircleQuestion}
-        iconColor="text-blue-500"
-        confirmText="Yes"
-        cancelText="No"
-      />
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirmFetch={handleDeleteQuestion}
-        title="Confirm Deletion"
-        message="Are you sure you want to delete this question?"
-        icon={faCircleXmark}
-        actionType="delete"
-        iconColor="text-red-500"
-        confirmText="Delete"
-        cancelText="Cancel"
-      />
-
-      <h2 className="text-xl font-semibold">
-        {sectionName} - {partName}
-      </h2>
-
-      {mode === "edit" ? (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-gray-600">
-              Question {questionIndex + 1} / {questionCount}
-            </span>
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        onConfirmFetch={() => handleFormSubmit()} // เปลี่ยนจากการปิด modal เป็นการ submit form
+        title="Question Preview"
+        message={
+          <div className="text-left">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-gray-700">
+                Skill Category:
+              </h3>
+              <p>
+                {skills.find((skill) => skill.skill_id === skillId)?.skill_name}
+              </p>
+            </div>
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-gray-700">Question:</h3>
+              <div dangerouslySetInnerHTML={{ __html: questionText }} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                Options:
+              </h3>
+              {options.map((option, index) => (
+                <div key={index} className="flex items-center mb-2">
+                  <input
+                    type="radio"
+                    checked={option.is_correct}
+                    readOnly
+                    className="h-4 w-4 text-blue-600 border-gray-300"
+                  />
+                  <span className="ml-2">
+                    {String.fromCharCode(65 + index)}. {option.option_text}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className="bg-blue-500 h-2.5 rounded-full"
-              style={{
-                width: `${((questionIndex + 1) / questionCount) * 100}%`,
-              }}
-            />
-          </div>
-        </div>
-      ) : (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-gray-600">
-              Question Count: {questionCount}
-            </span>
+        }
+        confirmText={
+          isLoading
+            ? mode === "create"
+              ? "Creating..."
+              : "Updating..."
+            : mode === "create"
+            ? "Create Question"
+            : "Update Question"
+        }
+        cancelText="Close"
+        actionType="default"
+        isPreview={true}
+      />
+      <div className="max-w-5xl mx-auto px-4">
+        {/* Header Section */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+          <div className="flex items-center">
+            <button
+              onClick={() => handleNavigation("/questions")}
+              className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <IoChevronBack className="w-6 h-6 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">
+                {mode === "create" ? "Create New Question" : "Update Question"}
+              </h1>
+              <p className="text-gray-600 mt-2">
+                {mode === "create"
+                  ? "Add a new question to your question bank"
+                  : "Edit existing question in your question bank"}
+              </p>
+            </div>
           </div>
         </div>
-      )}
 
-      {error && <p className="text-red-500">{error}</p>}
+        {/* Main Form Section */}
+        <div className="bg-white rounded-xl shadow-sm">
+          <form onSubmit={handleFormSubmit} className="p-6">
+            {/* Skill Selection */}
+            <div className="mb-8">
+              <label
+                htmlFor="skill"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Select Skill Category
+              </label>
+              <select
+                id="skill"
+                value={String(skillId ?? "")}
+                onChange={onSelectSkill}
+                disabled={isLoading}
+                className={`block w-full pl-4 pr-10 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out bg-white ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                <option value="">Choose a skill type...</option>
+                {skills?.map((skill) => (
+                  <option
+                    key={skill.skill_id}
+                    value={skill.skill_id?.toString()}
+                  >
+                    {skill.skill_name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          setIsSubmitModalOpen(true);
-        }}
-        className="grid grid-cols-2 gap-4"
-      >
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Skill
-          </label>
-          <select
-            value={skillID}
-            onChange={(e) => setSkillID(Number(e.target.value))}
-            className="w-full mt-1 p-2 border border-gray-300 rounded-md"
-            disabled={isLoading}
-          >
-            <option value="">Select a Skill</option>
-            {skills.map((skill) => (
-              <option key={skill.skillID} value={skill.skillID}>
-                {skill.skillName}
-              </option>
-            ))}
-          </select>
-        </div>
+            {/* Question Text */}
+            <div className="mb-8">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Question Text
+              </label>
+              <TiptapEditor
+                content={questionText}
+                onChange={onEditorChange}
+                // onInit={() => setIsEditorReady(true)}
+                immediatelyRender={false}
+                editorProps={{
+                  attributes: {
+                    class: "prose focus:outline-none max-w-full",
+                  },
+                }}
+              />
+            </div>
 
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Question Text
-          </label>
-          <TinyMCEEditor
-            value={questionTexts}
-            onChange={(content) => {
-              setQuestionTexts(content);
-            }}
-          />
-        </div>
+            {/* Options Section */}
+            <div className="grid grid-cols-2 gap-6">
+              {options.map((option, index) => (
+                <div key={index} className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id={`isCorrect${index}`}
+                        checked={option.is_correct}
+                        onChange={(e) => onSelectAnswer(index, e)}
+                        className={`h-4 w-4 text-blue-600 border-gray-300 ${
+                          isLoading ? "cursor-not-allowed" : ""
+                        }`}
+                        disabled={isLoading}
+                      />
+                      <label className="ml-2 text-sm font-medium text-gray-700">
+                        Choice {String.fromCharCode(65 + index)}
+                      </label>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveOption(index, "up")}
+                        disabled={index === 0 || isLoading}
+                        className="p-1 text-gray-500 hover:bg-gray-100 rounded disabled:opacity-50"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveOption(index, "down")}
+                        disabled={index === options.length - 1 || isLoading}
+                        className="p-1 text-gray-500 hover:bg-gray-100 rounded disabled:opacity-50"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveOption(index)}
+                        disabled={isLoading}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded disabled:opacity-50"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    id={`option${index}`}
+                    value={option.option_text}
+                    onChange={(e) => handleOptionChange(index, e)}
+                    maxLength={MAX_OPTION_LENGTH}
+                    placeholder="Enter choice text..."
+                    className={`w-full p-2.5 border border-gray-200 rounded-lg focus:ring-0 focus:border-gray-300 ${
+                      isLoading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    disabled={isLoading}
+                  />
+                </div>
+              ))}
 
-        {["A", "B", "C", "D"].map((choice) => (
-          <div key={choice} className="col-span-1">
-            <label className="block text-sm font-medium text-gray-700">
-              Choice {choice}
-            </label>
-            <input
-              type="text"
-              value={choices[`choice${choice}` as keyof typeof choices]}
-              onChange={(e) =>
-                setChoices({ ...choices, [`choice${choice}`]: e.target.value })
-              }
-              placeholder={`Enter Choice ${choice}`}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-md"
-              disabled={isLoading}
-            />
-          </div>
-        ))}
-
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Correct Answer
-          </label>
-          <select
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            className="w-full mt-1 p-2 border border-gray-300 rounded-md"
-            disabled={isLoading}
-          >
-            <option value="">Select the correct answer</option>
-            {["A", "B", "C", "D"].map((choice) => (
-              <option key={choice} value={choice}>
-                {choice}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="col-span-2 flex justify-between mt-4">
-          <button
-            type="button"
-            onClick={handleNavigation}
-            className={`bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 ${
-              isLoading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            disabled={isLoading}
-          >
-            {mode === "edit" || from === "view"
-              ? "Back to View Question"
-              : "Back to Select Part"}
-          </button>
-
-          <div className="flex space-x-4">
-            {mode === "edit" && (
-              <>
+              {/* Add Option Button */}
+              <div className="col-span-2">
                 <button
                   type="button"
-                  onClick={() => handlePrevious()}
-                  className={`bg-blue-500 text-white px-4 py-2 rounded ${
-                    isLoading || questionIndex === 0
-                      ? "bg-gray-400 text-gray-600 cursor-not-allowed"
-                      : ""
-                  }`}
-                  disabled={isLoading || questionIndex === 0}
+                  onClick={handleAddOption}
+                  disabled={options.length >= 5 || isLoading}
+                  className="w-full p-2 mt-2 text-gray-600 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Previous
+                  + Add Option
+                </button>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="mt-8 flex justify-between">
+              <div className="flex space-x-4">
+                <button
+                  type="button"
+                  onClick={() => handleNavigation("/questions")}
+                  disabled={isLoading}
+                  className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-150 ease-in-out"
+                >
+                  Cancel
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleNext()}
-                  className={classNames(
-                    "bg-blue-500 text-white px-4 py-2 rounded",
-                    {
-                      "bg-gray-400 text-gray-600 cursor-not-allowed":
-                        isLoading || questionIndex === questionCount - 1,
-                    }
-                  )}
-                  disabled={isLoading || questionIndex === questionCount - 1}
+                  onClick={handleClearForm}
+                  disabled={isLoading || !isFormChanges()}
+                  className="px-8 py-3 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next
+                  Clear Form
                 </button>
-              </>
-            )}
+              </div>
 
-            <button
-              type="submit"
-              disabled={!isFormValid() || isLoading}
-              className={`px-4 py-2 rounded-md ${
-                !isFormValid() || isLoading
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-green-500 text-white hover:bg-green-600"
-              }`}
-            >
-              {isLoading
-                ? "Submitting..."
-                : mode === "create"
-                ? "Submit"
-                : "Save Changes"}
-            </button>
-          </div>
+              <div className="flex space-x-4">
+                <button
+                  type="button"
+                  onClick={handlePreview}
+                  disabled={
+                    !isFormValid() ||
+                    isLoading ||
+                    (mode === "update" && !isDataUpdate())
+                  }
+                  className={`px-8 py-3 border border-blue-300 rounded-lg transition duration-150 ease-in-out
+        ${
+          !isFormValid() || isLoading || (mode === "update" && !isDataUpdate())
+            ? "text-gray-400 cursor-not-allowed"
+            : "text-blue-600 hover:bg-blue-50"
+        }`}
+                >
+                  Preview
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    !isFormValid() ||
+                    isLoading ||
+                    (mode === "update" && !isDataUpdate())
+                  }
+                  className={`inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white 
+        ${
+          isFormValid() &&
+          !isLoading &&
+          (mode === "create" || (mode === "update" && isDataUpdate()))
+            ? "bg-teal-600 hover:bg-teal-700"
+            : "bg-gray-400 cursor-not-allowed"
+        }
+        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition duration-150 ease-in-out`}
+                >
+                  {isLoading
+                    ? mode === "create"
+                      ? "Creating..."
+                      : "Updating..."
+                    : mode === "create"
+                    ? "Create Question"
+                    : "Update Question"}
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
-        {mode === "edit" && (
-          <div className="col-span-2 mt-6 flex justify-end">
-            <button
-              type="button"
-              onClick={handleOpenDeleteModal}
-              className="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600"
-              disabled={questionCount === 0}
-            >
-              Delete Question
-            </button>
-          </div>
-        )}
-      </form>
+      </div>
     </div>
   );
 }

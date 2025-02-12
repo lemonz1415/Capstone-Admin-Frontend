@@ -22,22 +22,32 @@ export const createQuestionQuery = async (body: any) => {
   }
 };
 
-export const getQuestionByIDQuery = async (question_id: number) => {
-  try {
-    const response = await axios.get(`${HOST_URL}/api/question/${question_id}`);
-    return response?.data;
-  } catch (error) {
-    console.log(error);
-    return [];
-  }
-};
-
 export const enableDisableQuestionQuery = async (body: any) => {
   try {
     const response = await axios.put(
       `${HOST_URL}/api/question/available`,
       body
     );
+    return response?.data;
+  } catch (error) {
+    console.log(error);
+    return;
+  }
+};
+
+export const getQuestionsByIDQuery = async (questionID: string) => {
+  try {
+    const response = await axios.get(`${HOST_URL}/api/question/${questionID}`);
+    return response?.data;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+
+export const editQuestionQuery = async (body: any) => {
+  try {
+    const response = await axios.put(`${HOST_URL}/api/question/edit`, body);
     return response?.data;
   } catch (error) {
     console.log(error);

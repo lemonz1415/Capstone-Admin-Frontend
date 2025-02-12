@@ -1,19 +1,27 @@
-'use client'
-import { useEffect } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import TextStyle from '@tiptap/extension-text-style'
-import Color from '@tiptap/extension-color'
-import TextAlign from '@tiptap/extension-text-align'
-import Underline from '@tiptap/extension-underline'
-import { BsTypeBold, BsTypeItalic, BsTypeUnderline, 
-         BsTextLeft, BsTextCenter, BsTextRight,
-         BsListUl, BsListOl } from 'react-icons/bs'
-import { MdFormatColorText, MdUndo, MdRedo } from 'react-icons/md'
+"use client";
+import { useEffect } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import TextStyle from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
+import TextAlign from "@tiptap/extension-text-align";
+import Underline from "@tiptap/extension-underline";
+import {
+  BsTypeBold,
+  BsTypeItalic,
+  BsTypeUnderline,
+  BsTextLeft,
+  BsTextCenter,
+  BsTextRight,
+  BsListUl,
+  BsListOl,
+} from "react-icons/bs";
+import { MdFormatColorText, MdUndo, MdRedo } from "react-icons/md";
 
 interface TiptapEditorProps {
   content: string;
   onChange: (content: string) => void;
+  onInit?: () => void;
   immediatelyRender?: boolean;
   editorProps?: {
     attributes?: {
@@ -22,11 +30,16 @@ interface TiptapEditorProps {
   };
 }
 
-const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProps = {
-  attributes: {
-    class: 'prose focus:outline-none max-w-full'
-  }
-} 
+const TiptapEditor = ({
+  content,
+  onChange,
+  onInit,
+  immediatelyRender = false,
+  editorProps = {
+    attributes: {
+      class: "prose focus:outline-none max-w-full",
+    },
+  },
 }: TiptapEditorProps) => {
   const editor = useEditor({
     extensions: [
@@ -34,36 +47,46 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProp
       TextStyle,
       Color,
       TextAlign.configure({
-        types: ['paragraph', 'heading']
+        types: ["paragraph", "heading"],
       }),
-      Underline
+      Underline,
     ],
     content: content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
     editorProps: editorProps,
-    immediatelyRender: immediatelyRender
+    immediatelyRender: immediatelyRender,
   });
+
+  useEffect(() => {
+    if (editor) {
+      onInit?.();
+    }
+
+    return () => {
+      if (editor) {
+        editor.destroy();
+      }
+    };
+  }, [editor, onInit]);
 
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       editor.commands.setContent(content);
     }
   }, [content, editor]);
-  
+
   if (!editor) {
     return null;
   }
 
-
-  
   const colors = [
-    { name: 'Black', value: '#000000' },
-    { name: 'Red', value: '#EF4444' },
-    { name: 'Blue', value: '#3B82F6' },
-    { name: 'Green', value: '#10B981' },
-    { name: 'Purple', value: '#8B5CF6' },
+    { name: "Black", value: "#000000" },
+    { name: "Red", value: "#EF4444" },
+    { name: "Blue", value: "#3B82F6" },
+    { name: "Green", value: "#10B981" },
+    { name: "Purple", value: "#8B5CF6" },
   ];
 
   return (
@@ -76,7 +99,7 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProp
             type="button"
             onClick={() => editor.chain().focus().toggleBold().run()}
             className={`p-2 rounded hover:bg-gray-200 ${
-              editor.isActive('bold') ? 'bg-gray-200' : ''
+              editor.isActive("bold") ? "bg-gray-200" : ""
             }`}
             title="Bold"
           >
@@ -86,7 +109,7 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProp
             type="button"
             onClick={() => editor.chain().focus().toggleItalic().run()}
             className={`p-2 rounded hover:bg-gray-200 ${
-              editor.isActive('italic') ? 'bg-gray-200' : ''
+              editor.isActive("italic") ? "bg-gray-200" : ""
             }`}
             title="Italic"
           >
@@ -96,7 +119,7 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProp
             type="button"
             onClick={() => editor.chain().focus().toggleUnderline().run()}
             className={`p-2 rounded hover:bg-gray-200 ${
-              editor.isActive('underline') ? 'bg-gray-200' : ''
+              editor.isActive("underline") ? "bg-gray-200" : ""
             }`}
             title="Underline"
           >
@@ -108,9 +131,9 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProp
         <div className="flex gap-1 border-r pr-2">
           <button
             type="button"
-            onClick={() => editor.chain().focus().setTextAlign('left').run()}
+            onClick={() => editor.chain().focus().setTextAlign("left").run()}
             className={`p-2 rounded hover:bg-gray-200 ${
-              editor.isActive({ textAlign: 'left' }) ? 'bg-gray-200' : ''
+              editor.isActive({ textAlign: "left" }) ? "bg-gray-200" : ""
             }`}
             title="Align Left"
           >
@@ -118,9 +141,9 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProp
           </button>
           <button
             type="button"
-            onClick={() => editor.chain().focus().setTextAlign('center').run()}
+            onClick={() => editor.chain().focus().setTextAlign("center").run()}
             className={`p-2 rounded hover:bg-gray-200 ${
-              editor.isActive({ textAlign: 'center' }) ? 'bg-gray-200' : ''
+              editor.isActive({ textAlign: "center" }) ? "bg-gray-200" : ""
             }`}
             title="Align Center"
           >
@@ -128,9 +151,9 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProp
           </button>
           <button
             type="button"
-            onClick={() => editor.chain().focus().setTextAlign('right').run()}
+            onClick={() => editor.chain().focus().setTextAlign("right").run()}
             className={`p-2 rounded hover:bg-gray-200 ${
-              editor.isActive({ textAlign: 'right' }) ? 'bg-gray-200' : ''
+              editor.isActive({ textAlign: "right" }) ? "bg-gray-200" : ""
             }`}
             title="Align Right"
           >
@@ -144,7 +167,7 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProp
             type="button"
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             className={`p-2 rounded hover:bg-gray-200 ${
-              editor.isActive('bulletList') ? 'bg-gray-200' : ''
+              editor.isActive("bulletList") ? "bg-gray-200" : ""
             }`}
             title="Bullet List"
           >
@@ -154,7 +177,7 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProp
             type="button"
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             className={`p-2 rounded hover:bg-gray-200 ${
-              editor.isActive('orderedList') ? 'bg-gray-200' : ''
+              editor.isActive("orderedList") ? "bg-gray-200" : ""
             }`}
             title="Numbered List"
           >
@@ -177,7 +200,9 @@ const TiptapEditor = ({ content, onChange, immediatelyRender = false, editorProp
                 <button
                   type="button"
                   key={color.value}
-                  onClick={() => editor.chain().focus().setColor(color.value).run()}
+                  onClick={() =>
+                    editor.chain().focus().setColor(color.value).run()
+                  }
                   className="p-2 hover:bg-gray-100 rounded flex items-center"
                 >
                   <div
