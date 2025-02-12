@@ -388,7 +388,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
   // แสดงหน้า load รอจนตัว editor และ ข้อมูลถูกดึงมา ( กรณีเป็น update ) จนเสร็จก่อนค่อยแสดงทั้งหมดพร้อมกัน 
   if (isInitialLoading || !isEditorReady) {
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex items-center justify-center min-h-screen ml-[250px]">
       <div className="text-gray-600">
         {mode === "create" 
           ? "Loading create question form..." 
@@ -399,7 +399,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
 }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-gray-50 min-h-screen py-8 ml-[250px]">
       <Toaster position="top-right" />
       {/* Modal */}
       <Modal
