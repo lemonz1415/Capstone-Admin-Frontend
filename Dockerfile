@@ -5,8 +5,9 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY package.json package-lock.json ./
+COPY package.json ./
 RUN npm install
+
 
 # Copy the entire application to the container
 COPY . .
