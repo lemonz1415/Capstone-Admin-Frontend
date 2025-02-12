@@ -47,9 +47,9 @@ jobs:
 
         # Build Docker Image
         echo "Building Docker image $IMAGE_NAME:$IMAGE_TAG..."
-        docker build -f web-admin-front/Dockerfile \
+        docker build -f CP24NW1/web-admin-front/Dockerfile \
           -t $IMAGE_NAME:$IMAGE_TAG \
-          web-admin-front
+          CP24NW1/web-admin-front
 
         # Push Docker Image to Docker Hub
         echo "Pushing Docker image to Docker Hub..."
