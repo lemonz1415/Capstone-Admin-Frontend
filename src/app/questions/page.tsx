@@ -276,7 +276,7 @@ export default function ManageQuestion() {
 
             {/* Pagination */}
             {questions?.data?.length > 0 && (
-              <div className="pt-[25px] flex justify-center fixed top-[700px] left-auto">
+              <div className="pt-[25px] flex justify-center left-auto">
                 <Pagination
                   initialPage={1}
                   page={questions?.page}

@@ -9,10 +9,13 @@ import {
   FaCheck,
   FaArrowLeft,
 } from "react-icons/fa";
+
 import {
   enableDisableQuestionQuery,
   getQuestionByIDQuery,
 } from "@/query/question.query";
+
+import parse from "html-react-parser";
 
 export default function Preview() {
   const router = useRouter();
@@ -61,10 +64,10 @@ export default function Preview() {
       {question && (
         <div className="flex justify-center items-center min-h-screen ">
           <div className="bg-white p-10 rounded-2xl shadow-2xl max-w-2xl w-full transform transition-all hover:scale-105 duration-300 ease-in-out">
-            <p className="text-lg font-semibold text-gray-800 mb-4">
+            <div className="text-lg font-semibold text-gray-800 mb-4">
               <span className="underline">Question:</span>&nbsp;
-              {question?.question}
-            </p>
+              {parse(question?.question)}
+            </div>
 
             <p className="text-[15px] font-semibold text-gray-400 mb-4 italic">
               Skill: {question?.skill?.skill_name}
