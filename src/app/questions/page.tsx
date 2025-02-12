@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { FaTimes } from "react-icons/fa";
 import {
   Table,
   TableHeader,
@@ -26,7 +27,9 @@ import {
 
 import { getAllSkillQuery } from "@/query/skill.query";
 import { getAllQuestionQuery } from "@/query/question.query";
-import { convertDateToTH } from "@/util/util.function";
+import { convertDateToEN } from "@/util/util.function";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { debounce } from "lodash";
 
 export default function ManageQuestion() {
   const router = useRouter();
@@ -37,6 +40,7 @@ export default function ManageQuestion() {
     end_date: "",
     page: 1,
     per_page: 10,
+    search_filter: "",
   });
 
   //GET SKILLS
@@ -76,7 +80,13 @@ export default function ManageQuestion() {
       ...(question || {}),
       key: question?.question_id,
       question_text: question?.question_text?.replace(/<[^>]*>/g, "").trim(),
-      create_at: convertDateToTH(question?.create_at),
+      create_at: convertDateToEN(question?.create_at),
+      is_available:
+        question?.is_available === 1 ? (
+          <p className="text-green-3 font-semibold">Available</p>
+        ) : (
+          <p className="text-red-3 font-semibold">Not available</p>
+        ),
     })) || [];
 
   const columns = [
@@ -95,6 +105,10 @@ export default function ManageQuestion() {
     {
       key: "create_at",
       label: "CREATED AT",
+    },
+    {
+      key: "is_available",
+      label: "AVAILABLE STATUS",
     },
   ];
 
@@ -145,6 +159,20 @@ export default function ManageQuestion() {
     }));
   };
 
+  const onPreview = (keys: any) => {
+    const questionID = new Set(keys);
+    return router.push(`/questions/${[...questionID][0]}`);
+  };
+
+  // ฟังก์ชันที่ใช้ในการจัดการ search เมื่อ user พิมพ์
+  const onDebounceSearch = debounce((value) => {
+    setDataFilter((prev: any) => ({
+      ...prev,
+      search_filter: value,
+      page: 1,
+    }));
+  }, 500); // เวลาหน่วง (500ms) ก่อนที่ function นี้จะถูกเรียกใช้หลังจาก user หยุดพิมพ์
+
   return (
     <div className="bg-gray-50 min-h-screen py-10 ml-[250px]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -157,9 +185,10 @@ export default function ManageQuestion() {
           <div className="w-[350px]">
             <Input
               label="Search"
-              placeholder="Enter your search"
+              placeholder="Search for what you're looking for"
               type="search"
               variant="underlined"
+              onValueChange={onDebounceSearch}
             />
           </div>
           {/* Date Range Picker */}
@@ -171,6 +200,7 @@ export default function ManageQuestion() {
               onChange={onSetDate}
             />
           </div>
+
           {/* Skills Dropdown */}
           <div className="pl-[50px]">
             <Dropdown>
@@ -219,7 +249,7 @@ export default function ManageQuestion() {
                 selectionBehavior="replace"
                 selectionMode="single"
                 color="success"
-                onSelectionChange={() => console.log("sss")}
+                onSelectionChange={onPreview}
               >
                 <TableHeader columns={columns}>
                   {(column) => (
@@ -246,7 +276,7 @@ export default function ManageQuestion() {
 
             {/* Pagination */}
             {questions?.data?.length > 0 && (
-              <div className="pt-[25px] flex justify-center fixed top-[700px] left-auto">
+              <div className="pt-[25px] flex justify-center left-auto">
                 <Pagination
                   initialPage={1}
                   page={questions?.page}
