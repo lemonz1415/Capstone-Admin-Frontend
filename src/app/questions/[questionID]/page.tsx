@@ -12,7 +12,7 @@ import {
 
 import {
   enableDisableQuestionQuery,
-  getQuestionByIDQuery,
+  getQuestionsByIDQuery,
 } from "@/query/question.query";
 
 import parse from "html-react-parser";
@@ -35,7 +35,7 @@ export default function Preview() {
 
   useEffect(() => {
     const getQuestionByID = async () => {
-      const question = await getQuestionByIDQuery(Number(questionID));
+      const question = await getQuestionsByIDQuery(String(questionID));
       setQuestion(question);
       setIsDisabled(question?.is_available);
     };

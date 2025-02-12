@@ -30,6 +30,7 @@ interface NewQuestionData {
   user_id: number | null;
   image_id: number | null;
   question_text: string;
+  options: QuestionOption[];
 }
 
 const MAX_QUESTION_LENGTH = 300; // กำหนด max length ของ question
@@ -101,18 +102,18 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
           console.error("Error fetching question:", error);
           toast.error("Error loading question data");
           router.push("/questions");
-        } 
-      }else {
+        }
+      } else {
         // ถ้าเป็น create mode ให้ set isEditorReady เป็น true และ setIsInitialLoading เป็น false เลย
         setIsEditorReady(true);
         setIsInitialLoading(false);
-    }
-};
+      }
+    };
 
     fetchInitialData();
   }, [mode, questionID, router]);
 
-  // รอให้ isEditorReady เป็น true ก่อน = รอให้ข้อมูลถูก fetch และ assign ให้เรียบร้อยก่อน จึงจะ set ให้ isInitialLoading = false 
+  // รอให้ isEditorReady เป็น true ก่อน = รอให้ข้อมูลถูก fetch และ assign ให้เรียบร้อยก่อน จึงจะ set ให้ isInitialLoading = false
   useEffect(() => {
     if (isEditorReady && isInitialLoading) {
       setIsInitialLoading(false);
@@ -217,7 +218,11 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     const hasCorrectAnswer = options.some((option) => option.is_correct);
 
     return (
-      hasSkill && hasQuestionText && isQuestionLengthValid && allOptionsHaveText && hasCorrectAnswer
+      hasSkill &&
+      hasQuestionText &&
+      isQuestionLengthValid &&
+      allOptionsHaveText &&
+      hasCorrectAnswer
     );
   }, [skillId, questionText, options]);
 
@@ -316,6 +321,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
       image_id: null,
       user_id: null,
       question_text: questionText,
+      options: options,
     };
 
     try {
@@ -323,32 +329,22 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
         const responseQuestion = await createQuestionQuery(data);
 
         if (!responseQuestion?.success) {
-            throw new Error(responseQuestion?.message || "Failed to create question");
-          }
+          toast.error("Failed to create question");
+          throw new Error(
+            responseQuestion?.message || "Failed to create question"
+          );
+        }
 
-        const insertOption = options.map((opt) => ({
-          ...opt,
-          question_id: responseQuestion?.question_id,
-        }));
-
-        const responseOption = await createOptionQuery(insertOption);
-        if (!responseOption?.success) {
-            throw new Error(responseOption?.message || "Failed to create options");
-          }
-
-        if (responseQuestion?.success && responseOption?.success) {
+        if (responseQuestion?.success) {
           toast.success("Question created successfully.");
 
           // Clear form after successful submission
           resetForm();
-          setIsPreviewModalOpen(false); 
+          setIsPreviewModalOpen(false);
           router.push("/questions");
+        } else {
+          toast.error(responseQuestion?.message || "Failed to create question");
         }
-        else {
-            toast.error(
-              responseQuestion?.message || responseOption?.message || "Failed to create question"
-            );
-          }
       } else {
         // ส่งข้อมูลทั้ง question และ options ไป
         const updateData = {
@@ -376,27 +372,31 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
         }
       }
     } catch (error: any) {
-        console.error(error);
-        toast.error(error.response?.data?.message || error.message || (mode === "create"
+      console.error(error);
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          (mode === "create"
             ? "An error occurred while creating the question."
-            : "An error occurred while updating the question."));
+            : "An error occurred while updating the question.")
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // แสดงหน้า load รอจนตัว editor และ ข้อมูลถูกดึงมา ( กรณีเป็น update ) จนเสร็จก่อนค่อยแสดงทั้งหมดพร้อมกัน 
+  // แสดงหน้า load รอจนตัว editor และ ข้อมูลถูกดึงมา ( กรณีเป็น update ) จนเสร็จก่อนค่อยแสดงทั้งหมดพร้อมกัน
   if (isInitialLoading || !isEditorReady) {
-  return (
-    <div className="flex items-center justify-center min-h-screen ml-[250px]">
-      <div className="text-gray-600">
-        {mode === "create" 
-          ? "Loading create question form..." 
-          : "Loading update question form with data..."}
+    return (
+      <div className="flex items-center justify-center min-h-screen ml-[250px]">
+        <div className="text-gray-600">
+          {mode === "create"
+            ? "Loading create question form..."
+            : "Loading update question form with data..."}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen py-8 ml-[250px]">
