@@ -38,7 +38,7 @@ jobs:
     # Build and Push Docker Image
     - name: Build and Push Docker Image
       env:
-        IMAGE_NAME: pongpairoch/my-frontend-app
+        IMAGE_NAME: wachrawit/my-frontend-app
         IMAGE_TAG: ${{ github.event.inputs.branch }}
       run: |
         # Login to Docker Hub
