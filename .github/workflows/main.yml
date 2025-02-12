@@ -63,7 +63,7 @@ jobs:
         username: ${{ secrets.SSH_USERNAME }}
         password: ${{ secrets.SSH_PASSWORD }}
         script: |
-          IMAGE_NAME=pongpairoch/my-frontend-app
+          IMAGE_NAME=wachrawit/my-frontend-app
           IMAGE_TAG=${{ github.event.inputs.branch }}
 
           # Login to Docker Hub
