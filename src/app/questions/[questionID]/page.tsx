@@ -122,7 +122,7 @@ export default function Preview() {
                   {Boolean(isDisabled) ? <FaEye /> : <FaEyeSlash />}
                 </button>
                 <button
-                  onClick={toggleEditMode}
+                  onClick={() => router.push(`/questions/${questionID}/edit`)}
                   className="text-2xl text-gray-600 hover:text-indigo-600 transition duration-200"
                 >
                   <FaEdit />

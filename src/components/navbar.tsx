@@ -19,10 +19,10 @@ export default function Navbar() {
         <div>
           {/* Logo */}
           <div
-            className="text-2xl font-semibold mb-8 cursor-pointer"
+            className="text-xl font-semibold mb-8 cursor-pointer"
             onClick={() => router.push("/")}
           >
-            Admin Dashboard
+            Management System
           </div>
           <nav>
             <ul>
