@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
     domains: ["https://capstone24.sit.kmutt.ac.th"],
     unoptimized: true,
   },
-  basePath: "/nw1",
-  assetPrefix: "/nw1",
+  basePath: "/nw1/admin",
+  assetPrefix: "/nw1/admin",
 };
 
 export default nextConfig;
