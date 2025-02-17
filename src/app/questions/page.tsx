@@ -104,7 +104,7 @@ export default function ManageQuestion() {
     },
     {
       key: "create_at",
-      label: "CREATED AT",
+      label: "UPDATED AT",
     },
     {
       key: "is_available",
