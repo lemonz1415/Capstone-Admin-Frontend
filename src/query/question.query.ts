@@ -4,7 +4,7 @@ const HOST_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const getAllQuestionQuery = async (body: any) => {
   try {
-    const response = await axios.post(`${HOST_URL}/api/question`, body);
+    const response = await axios.post(`${HOST_URL}/api/admin/question`, body);
     return response?.data;
   } catch (error) {
     console.log(error);
@@ -14,7 +14,10 @@ export const getAllQuestionQuery = async (body: any) => {
 
 export const createQuestionQuery = async (body: any) => {
   try {
-    const response = await axios.post(`${HOST_URL}/api/question/create`, body);
+    const response = await axios.post(
+      `${HOST_URL}/api/admin/question/create`,
+      body
+    );
     return response?.data;
   } catch (error) {
     console.log(error);
@@ -25,7 +28,7 @@ export const createQuestionQuery = async (body: any) => {
 export const enableDisableQuestionQuery = async (body: any) => {
   try {
     const response = await axios.put(
-      `${HOST_URL}/api/question/available`,
+      `${HOST_URL}/api/admin/question/available`,
       body
     );
     return response?.data;
@@ -37,7 +40,9 @@ export const enableDisableQuestionQuery = async (body: any) => {
 
 export const getQuestionsByIDQuery = async (questionID: string) => {
   try {
-    const response = await axios.get(`${HOST_URL}/api/question/${questionID}`);
+    const response = await axios.get(
+      `${HOST_URL}/api/admin/question/${questionID}`
+    );
     return response?.data;
   } catch (error) {
     console.log(error);
@@ -47,7 +52,10 @@ export const getQuestionsByIDQuery = async (questionID: string) => {
 
 export const editQuestionQuery = async (body: any) => {
   try {
-    const response = await axios.put(`${HOST_URL}/api/question/edit`, body);
+    const response = await axios.put(
+      `${HOST_URL}/api/admin/question/edit`,
+      body
+    );
     return response?.data;
   } catch (error) {
     console.log(error);
