@@ -7,9 +7,9 @@ export default function Navbar() {
   const router = useRouter();
 
   const MENU = [
-    { topic: "Dashboard", path: "/", disable: false },
+    // { topic: "Dashboard", path: "/", disable: true },
     { topic: "Manage Question", path: "/questions", disable: false },
-    { topic: "Manage User", path: "/user", disable: true },
+    // { topic: "Manage User", path: "/user", disable: true },
   ];
 
   return (
@@ -18,12 +18,7 @@ export default function Navbar() {
       <aside className="w-64 bg-gradient-to-r from-blue-600 to-blue-400 text-white fixed top-0 left-0 h-full p-6 flex flex-col justify-between">
         <div>
           {/* Logo */}
-          <div
-            className="text-xl font-semibold mb-8 cursor-pointer"
-            onClick={() => router.push("/")}
-          >
-            Management System
-          </div>
+          <div className="text-xl font-semibold mb-8">Management System</div>
           <nav>
             <ul>
               {MENU?.map((m) => (
