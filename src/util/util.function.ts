@@ -14,3 +14,11 @@ export function convertDateToEN(date: Date | string): string {
 
   return new Intl.DateTimeFormat("en-US", options).format(date);
 }
+
+export function formatDate(date: Date) {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0"); // Months are 0-based, so we add 1
+  const day = date.getDate().toString().padStart(2, "0"); // Pad day with leading zero if needed
+
+  return `${year}-${month}-${day}`;
+}
