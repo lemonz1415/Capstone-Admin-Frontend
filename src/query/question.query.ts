@@ -4,7 +4,7 @@ const HOST_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const getAllQuestionQuery = async (body: any) => {
   try {
-    const response = await axios.post(`${HOST_URL}/api/admin/question`, body);
+    const response = await axios.get(`${HOST_URL}/api/admin/question`, body);
     return response?.data;
   } catch (error) {
     console.log(error);

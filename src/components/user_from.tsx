@@ -197,7 +197,7 @@ export default function UserForm() {
       <Toaster position="top-right" />
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-[1000px] ml-[250px]">
         <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">
-          Create New User
+          {`${user_id ? "Edit" : "Create"} user`}
         </h2>
         <form className="space-y-4">
           <div className="flex space-x-4">
@@ -206,7 +206,7 @@ export default function UserForm() {
                 htmlFor="firstname"
                 className="block text-sm font-medium text-gray-600"
               >
-                First Name
+                First Name <span className="text-red-3">*</span>
               </label>
               <input
                 className="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -224,7 +224,7 @@ export default function UserForm() {
                 htmlFor="lastname"
                 className="block text-sm font-medium text-gray-600"
               >
-                Last Name
+                Last Name <span className="text-red-3">*</span>
               </label>
               <input
                 className="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -245,7 +245,7 @@ export default function UserForm() {
               htmlFor="email"
               className="block text-sm font-medium text-gray-600"
             >
-              Email
+              Email <span className="text-red-3">*</span>
             </label>
             <input
               className="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -265,7 +265,7 @@ export default function UserForm() {
               htmlFor="birthdate"
               className="block text-sm font-medium text-gray-600"
             >
-              Date of Birth
+              Date of Birth <span className="text-red-3">*</span>
             </label>
             <div className="pt-[10px]">
               <DatePicker
