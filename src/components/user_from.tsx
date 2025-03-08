@@ -10,6 +10,7 @@ import {
   getUserDetail,
 } from "@/query/user.query";
 import { parseDate } from "@internationalized/date";
+import Modal from "./modal";
 
 interface insertDataType {
   firstname: string;
@@ -42,6 +43,10 @@ export default function UserForm() {
     email: "",
     dob: "",
   });
+
+  const [isChange, setIsChange] = useState(false);
+
+  const [isOpenModal, setIsOpenModal] = useState(false);
 
   //----------------
   // FETCH DATA
@@ -84,6 +89,7 @@ export default function UserForm() {
     e: React.ChangeEvent<HTMLInputElement>,
     fieldName: string
   ) => {
+    setIsChange(true);
     setInsertData((prev) => ({
       ...prev,
       [`${fieldName}`]: e.target.value?.trim(),
@@ -95,6 +101,7 @@ export default function UserForm() {
     const dob = new Date(date);
     const formattedDOB = formatDate(dob);
 
+    setIsChange(true);
     setInsertData((prev) => ({
       ...prev,
       dob: formattedDOB,
@@ -184,6 +191,19 @@ export default function UserForm() {
       }
     }
   };
+
+  const onBack = () => {
+    if (isChange) {
+      setIsOpenModal(true); // เปิด modal เมื่อมีการเปลี่ยนแปลงข้อมูล
+    } else {
+      console.log("back");
+    }
+  };
+
+  //----------------
+  // RENDER
+  //----------------
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen ml-[250px]">
@@ -195,6 +215,17 @@ export default function UserForm() {
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center items-center py-10">
       <Toaster position="top-right" />
+      <Modal
+        isOpen={isOpenModal}
+        title={`Do you want to cancel ${
+          user_id ? "editing" : "creating"
+        } user?`}
+        message="You have unsaved changes"
+        onClose={() => setIsOpenModal(false)}
+        onConfirmFetch={() => console.log("back")}
+        confirmText="Confirm"
+        cancelText="Cancel"
+      />
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-[1000px] ml-[250px]">
         <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">
           {`${user_id ? "Edit" : "Create"} user`}
@@ -282,14 +313,19 @@ export default function UserForm() {
             </div>
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end">
-            <button
-              onClick={onSubmit}
-              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <div className="flex justify-between pt-[10px]">
+            <div
+              onClick={onBack}
+              className="bg-gray-300 text-gray-800 px-6 py-2 rounded-md cursor-pointer hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
             >
-              Create User
-            </button>
+              Back
+            </div>
+            <div
+              onClick={onSubmit}
+              className="bg-blue-600 text-white px-6 py-2 rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {user_id ? "Edit User" : "Create User"}
+            </div>
           </div>
         </form>
       </div>
