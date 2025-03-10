@@ -1,16 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { DatePicker } from "@heroui/react";
 import toast, { Toaster } from "react-hot-toast";
-import { formatDate } from "@/util/util.function";
 import {
   createUserQuery,
   editUserQuery,
   getUserDetail,
 } from "@/query/user.query";
-import { parseDate } from "@internationalized/date";
 import Modal from "./modal";
+import { formatDate } from "@/util/util.function";
 
 interface insertDataType {
   firstname: string;
@@ -64,7 +62,7 @@ export default function UserForm() {
               firstname: user.firstname || "",
               lastname: user.lastname || "",
               email: user.email || "",
-              dob: formatDate(new Date(user.DOB)) || null,
+              dob: formatDate(new Date(user.DOB)) || "",
             });
           }
         } catch (error) {
@@ -97,14 +95,13 @@ export default function UserForm() {
     validate();
   };
 
-  const onSetDOB = (date: any) => {
-    const dob = new Date(date);
-    const formattedDOB = formatDate(dob);
+  const onSetDOB = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const date = e.target.value;
 
     setIsChange(true);
     setInsertData((prev) => ({
       ...prev,
-      dob: formattedDOB,
+      dob: date,
     }));
   };
 
@@ -299,13 +296,11 @@ export default function UserForm() {
               Date of Birth <span className="text-red-3">*</span>
             </label>
             <div className="pt-[10px]">
-              <DatePicker
-                showMonthAndYearPickers
+              <input
+                type="date"
+                className="border border-black bg-white text-black rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 onChange={onSetDOB}
-                value={user_id && parseDate(String(insertData.dob))}
-                color="success"
-                variant="bordered"
-                size="lg"
+                value={String(insertData.dob)}
               />
               {errors.dob && (
                 <p className="text-red-500 text-sm">{errors.dob}</p>
