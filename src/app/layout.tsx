@@ -1,10 +1,13 @@
-import type { Metadata } from "next";
-import "../styles/globals.css";
+"use client";
+
+import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { Providers } from "./providers";
 import Navbar from "@/components/navbar";
+import "../styles/globals.css";
+import { Metadata } from "next";
 
-export const metadata: Metadata = {
+const metadata: Metadata = {
   title: "TOEIC Prep",
 };
 
@@ -13,13 +16,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+
+  const hideNavbarPages = ["/set-password", "/set-password/complete"];
+
   return (
     <html lang="en">
       <body>
         <Providers>
           <div className="min-h-screen flex">
             <Suspense fallback={<div>Loading...</div>}>
-              <Navbar />
+              {!hideNavbarPages.includes(pathname) && <Navbar />}
             </Suspense>
             <main className="flex-grow">{children}</main>
           </div>

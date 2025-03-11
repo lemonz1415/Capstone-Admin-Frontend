@@ -65,3 +65,24 @@ export const getUserDetail = async (user_id: string | string[] | undefined) => {
     }
   }
 };
+
+export const setPasswordQuery = async (body: {
+  email: string | string[] | null;
+  password: string;
+}) => {
+  try {
+    const response = await axios.put(
+      `${HOST_URL}/api/admin/user/password`,
+      body
+    );
+    return response?.data;
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      console.log(error);
+      return error?.response;
+    } else {
+      console.error("An unexpected error occurred:", error);
+      return null;
+    }
+  }
+};
