@@ -86,3 +86,21 @@ export const setPasswordQuery = async (body: {
     }
   }
 };
+
+export const verifyEmailQuery = async (body: {
+  email: string | string[] | null;
+  code: string;
+}) => {
+  try {
+    const response = await axios.put(`${HOST_URL}/api/admin/user/verify`, body);
+    return response?.data;
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      console.log(error);
+      return error?.response;
+    } else {
+      console.error("An unexpected error occurred:", error);
+      return null;
+    }
+  }
+};

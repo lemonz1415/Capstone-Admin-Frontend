@@ -9,6 +9,8 @@ import {
 } from "@/query/user.query";
 import Modal from "./modal";
 import { formatDate } from "@/util/util.function";
+import { FaDownload, FaSpinner } from "react-icons/fa";
+import { every } from "lodash";
 
 interface insertDataType {
   firstname: string;
@@ -45,6 +47,9 @@ export default function UserForm() {
   const [isChange, setIsChange] = useState(false);
 
   const [isOpenModal, setIsOpenModal] = useState(false);
+  const [isNoUserModal, setIsNoUserModal] = useState(false);
+
+  const [isCreating, setIsCreating] = useState(false);
 
   //----------------
   // FETCH DATA
@@ -160,27 +165,32 @@ export default function UserForm() {
     }
 
     setErrors(newErrors);
+
     return isValid;
   };
 
   const onSubmit = async (e: any) => {
     e.preventDefault();
+
     if (validate()) {
-      if (user_id) {
+      setIsCreating(true);
+      if (user_id && !isCreating) {
         const response = await editUserQuery(user_id, insertData);
         if (response?.success) {
+          setIsCreating(false);
           toast.success(`Edit user complete`);
           // router.push("")
         } else {
           toast.error(`Failed to edit user: ${response?.data?.error}`);
         }
-      } else {
+      } else if (!isCreating) {
         const response = await createUserQuery(insertData);
         if (response?.success) {
+          setIsCreating(false);
           toast.success(`Create user complete`);
           setTimeout(() => {
             window.location.reload();
-          }, 3000);
+          }, 500);
           // router.push("")
         } else {
           toast.error(`Failed to create user: ${response?.data?.error}`);
@@ -222,6 +232,14 @@ export default function UserForm() {
         onConfirmFetch={() => console.log("back")}
         confirmText="Confirm"
         cancelText="Cancel"
+      />
+      <Modal
+        isOpen={isNoUserModal}
+        title={`No data found for user`}
+        message="The user data could not be fetched. Please try again later."
+        onClose={() => setIsNoUserModal(false)}
+        onConfirmFetch={() => console.log("back")}
+        confirmText="Confirm"
       />
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-[1000px] ml-[250px]">
         <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">
@@ -317,9 +335,18 @@ export default function UserForm() {
             </div>
             <div
               onClick={onSubmit}
-              className="bg-blue-600 text-white px-6 py-2 rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-blue-600 text-white px-6 py-2 rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 relative flex items-center justify-center"
             >
-              {user_id ? "Edit User" : "Create User"}
+              {isCreating ? (
+                <>
+                  {user_id ? "Editing" : "Creating"} &nbsp;
+                  <FaSpinner className="animate-spin text-white mr-2" />
+                </>
+              ) : user_id ? (
+                "Edit user"
+              ) : (
+                "Create user"
+              )}
             </div>
           </div>
         </form>

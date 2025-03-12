@@ -18,7 +18,11 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
 
-  const hideNavbarPages = ["/set-password", "/set-password/complete"];
+  const hideNavbarPages = [
+    "/set-password",
+    "/set-password/complete",
+    "/verify-email",
+  ];
 
   return (
     <html lang="en">

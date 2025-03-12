@@ -68,8 +68,8 @@ export default function SetPasswordPage() {
         password: password,
       });
 
-      if (!response?.data.success) {
-        toast.error(`error: ${response?.data.message}`);
+      if (!response?.success) {
+        toast.error(`error: ${response?.message}`);
         return;
       }
       localStorage.setItem("SetPassword", "true");
