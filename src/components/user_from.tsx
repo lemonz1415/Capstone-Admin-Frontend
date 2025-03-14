@@ -5,7 +5,7 @@ import toast, { Toaster } from "react-hot-toast";
 import {
   createUserQuery,
   editUserQuery,
-  getUserDetail,
+  getUserDetailQuery,
 } from "@/query/user.query";
 import Modal from "./modal";
 import { formatDate } from "@/util/util.function";
@@ -61,7 +61,7 @@ export default function UserForm() {
     if (user_id) {
       const fetchUserDetail = async () => {
         try {
-          const user = await getUserDetail(user_id);
+          const user = await getUserDetailQuery(String(user_id));
           if (user) {
             setInsertData({
               firstname: user.firstname || "",
@@ -71,6 +71,7 @@ export default function UserForm() {
             });
           }
         } catch (error) {
+          setIsNoUserModal(true);
           console.error("Error fetching user data:", error);
           toast.error("Failed to fetch user data.");
         } finally {
@@ -202,8 +203,10 @@ export default function UserForm() {
   const onBack = () => {
     if (isChange) {
       setIsOpenModal(true); // เปิด modal เมื่อมีการเปลี่ยนแปลงข้อมูล
+    } else if (!isChange && user_id) {
+      router.push(`/users/${user_id}`);
     } else {
-      console.log("back");
+      router.push(`/users`);
     }
   };
 
@@ -229,7 +232,9 @@ export default function UserForm() {
         } user?`}
         message="You have unsaved changes"
         onClose={() => setIsOpenModal(false)}
-        onConfirmFetch={() => console.log("back")}
+        onConfirmFetch={() =>
+          user_id ? router.push(`/users/${user_id}`) : router.push(`/users`)
+        }
         confirmText="Confirm"
         cancelText="Cancel"
       />
@@ -237,8 +242,8 @@ export default function UserForm() {
         isOpen={isNoUserModal}
         title={`No data found for user`}
         message="The user data could not be fetched. Please try again later."
-        onClose={() => setIsNoUserModal(false)}
-        onConfirmFetch={() => console.log("back")}
+        onClose={onBack}
+        onConfirmFetch={() => router.push(`/users`)}
         confirmText="Confirm"
       />
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-[1000px] ml-[250px]">

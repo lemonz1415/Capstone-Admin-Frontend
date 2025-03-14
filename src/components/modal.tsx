@@ -7,13 +7,13 @@ import {
   faCircleXmark,
   faQuestion,
   faEye,
-  faXmark
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirmFetch: (() => Promise<void>) | (() => void); 
+  onConfirmFetch: (() => Promise<void>) | (() => void);
   title: string;
   message: string | React.ReactNode;
   confirmText?: string;
@@ -30,8 +30,8 @@ export default function Modal({
   onConfirmFetch,
   title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   icon = faQuestion,
   iconColor = "text-white",
   actionType = "default",
@@ -85,13 +85,15 @@ export default function Modal({
         <div className="text-gray-600 mb-10">{message}</div>
 
         <div className="flex justify-center space-x-4">
-          <button
-            onClick={onClose}
-            className="px-8 py-2 bg-gray-300 rounded-md text-gray-800 hover:bg-gray-400"
-            disabled={isLoading}
-          >
-            {isPreview ? "Close" : cancelText}
-          </button>
+          {cancelText && (
+            <button
+              onClick={onClose}
+              className="px-8 py-2 bg-gray-300 rounded-md text-gray-800 hover:bg-gray-400"
+              disabled={isLoading}
+            >
+              {isPreview ? "Close" : cancelText}
+            </button>
+          )}
           {(isPreview || (!isPreview && confirmText)) && (
             <button
               onClick={handleConfirm}

@@ -46,7 +46,7 @@ interface User {
   email: string;
   update_at: string;
   is_verify: boolean;
-  // role_id: "ADMIN" | "USER"; 
+  // role_id: "ADMIN" | "USER";
   is_active: boolean;
 }
 
@@ -102,7 +102,7 @@ export default function UserManagementPage() {
   }, [dataFilter]);
 
   const handleCreateUser = () => {
-    // router.push("/users/create");
+    router.push("/users/create");
   };
 
   // const onRoleChange = (role: "ALL" | "ADMIN" | "USER") => {
@@ -120,9 +120,7 @@ export default function UserManagementPage() {
       start_date: date.start
         ? new Date(date.start).toISOString().split("T")[0]
         : "",
-      end_date: date.end 
-        ? new Date(date.end).toISOString().split("T")[0] 
-        : "",
+      end_date: date.end ? new Date(date.end).toISOString().split("T")[0] : "",
       page: 1,
     }));
   };
@@ -191,9 +189,9 @@ export default function UserManagementPage() {
     name: `${user.firstname} ${user.lastname}`,
     email: user.email,
     // role_id: user.role_id || "-",
-    is_verify: user.is_verify ? "Yes" : "No" ,
+    is_verify: user.is_verify ? "Yes" : "No",
     status: user.is_active,
-    update_at: user.update_at ? convertDateToEN(user.update_at) : "N/A", 
+    update_at: user.update_at ? convertDateToEN(user.update_at) : "N/A",
   }));
 
   const renderCell = (item: any, columnKey: any) => {
@@ -220,9 +218,7 @@ export default function UserManagementPage() {
               //     : "#FFD700",
               // },
               style: {
-                backgroundColor: !item.status
-                  ? "#D3D3D3"
-                  : "#2196F3"
+                backgroundColor: !item.status ? "#D3D3D3" : "#2196F3",
               },
             }}
             description={item.email}
@@ -289,30 +285,29 @@ export default function UserManagementPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Toaster position="top-right" />
 
-      {/* Header Section */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold text-gray-800">
-          User Management
-        </h1>
-      </div>
+        {/* Header Section */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-semibold text-gray-800">
+            User Management
+          </h1>
+        </div>
 
-      {/* Sub Header - User Filter */}
-      <div className="px-[10px] py-[10px] flex items-center justify-between border-b-2 border-gray-200 mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">Filter Users</h2>
-        <Button
-          color="success"
-          variant="solid"
-          onPress={handleCreateUser}
-          className="text-white"
-        >
-          Create New +
-        </Button>
-      </div>
+        {/* Sub Header - User Filter */}
+        <div className="px-[10px] py-[10px] flex items-center justify-between border-b-2 border-gray-200 mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Filter Users</h2>
+          <Button
+            color="success"
+            variant="solid"
+            onPress={handleCreateUser}
+            className="text-white"
+          >
+            Create New +
+          </Button>
+        </div>
 
         {/* Filters Section*/}
         <div className="bg-white rounded-lg shadow-2xl p-[30px] flex flex-wrap items-center gap-4">
-
-           {/* Search Bar */}
+          {/* Search Bar */}
           <div className="w-[350px] z-0">
             <Input
               label="Search"
@@ -330,58 +325,62 @@ export default function UserManagementPage() {
               label="Update date"
               variant="flat"
               value={{
-                start: dataFilter.start_date ? parseDate(dataFilter.start_date) : null,
-                end: dataFilter.end_date ? parseDate(dataFilter.end_date) : null
+                start: dataFilter.start_date
+                  ? parseDate(dataFilter.start_date)
+                  : null,
+                end: dataFilter.end_date
+                  ? parseDate(dataFilter.end_date)
+                  : null,
               }}
               onChange={(date) => onDateChange(date)}
             />
           </div>
 
-           {/* Dropdown Filters */}
-           <div className="z-0">
-          <Dropdown>
-            <DropdownTrigger>
-              <Button variant="flat" color="primary"  className="bg-blue-100 hover:bg-blue-50 text-blue-600">
-                Verification Status
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              selectedKeys={new Set([dataFilter.is_verify])} // ใช้ Set เพื่อรองรับ HeroUI
-              closeOnSelect={true}
-              selectionMode="single"
-              onSelectionChange={(keys) => onVerificationStatusChange(keys)}
-            >
-              <DropdownItem key="true">Verified</DropdownItem>
-              <DropdownItem key="false">Unverified</DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+          {/* Dropdown Filters */}
+          <div className="z-0">
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  variant="flat"
+                  color="primary"
+                  className="bg-blue-100 hover:bg-blue-50 text-blue-600"
+                >
+                  Verification Status
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                selectedKeys={new Set([dataFilter.is_verify])} // ใช้ Set เพื่อรองรับ HeroUI
+                closeOnSelect={true}
+                selectionMode="single"
+                onSelectionChange={(keys) => onVerificationStatusChange(keys)}
+              >
+                <DropdownItem key="true">Verified</DropdownItem>
+                <DropdownItem key="false">Unverified</DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
           </div>
           <div className="z-0">
-          <Dropdown>
-            <DropdownTrigger>
-              <Button variant="flat" color="success">
-                Active Status
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              selectedKeys={new Set([dataFilter.is_active])} // ใช้ Set เพื่อรองรับ HeroUI
-              closeOnSelect={true}
-              selectionMode="single"
-              onSelectionChange={(keys) => onActiveStatusChange(keys)}
-            >
-              <DropdownItem key="true">Active</DropdownItem>
-              <DropdownItem key="false">Inactive</DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+            <Dropdown>
+              <DropdownTrigger>
+                <Button variant="flat" color="success">
+                  Active Status
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                selectedKeys={new Set([dataFilter.is_active])} // ใช้ Set เพื่อรองรับ HeroUI
+                closeOnSelect={true}
+                selectionMode="single"
+                onSelectionChange={(keys) => onActiveStatusChange(keys)}
+              >
+                <DropdownItem key="true">Active</DropdownItem>
+                <DropdownItem key="false">Inactive</DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
           </div>
 
           {/* Reset Filters */}
           <div className="ml-auto">
-            <Button
-              color="danger"
-              variant="flat"
-              onPress={resetFilters}
-            >
+            <Button color="danger" variant="flat" onPress={resetFilters}>
               Reset Filters
             </Button>
           </div>

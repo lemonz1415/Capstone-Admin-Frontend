@@ -81,21 +81,6 @@ export const editUserQuery = async (
   }
 };
 
-export const getUserDetail = async (user_id: string | string[] | undefined) => {
-  try {
-    const response = await axios.get(`${HOST_URL}/api/admin/user/${user_id}`);
-    return response?.data?.user_detail;
-  } catch (error: unknown) {
-    if (axios.isAxiosError(error)) {
-      console.log(error);
-      return error?.response;
-    } else {
-      console.error("An unexpected error occurred:", error);
-      return null;
-    }
-  }
-};
-
 // ฟังก์ชันสำหรับดึงข้อมูลผู้ใช้เฉพาะราย
 export const getUserDetailQuery = async (userId: string) => {
   const response = await axios.get(`${HOST_URL}/api/admin/user/${userId}`);
