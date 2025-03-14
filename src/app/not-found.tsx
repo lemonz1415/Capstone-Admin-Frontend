@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 export default function NotFound() {
   const router = useRouter();
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
+    <div className="flex flex-col items-center justify-center h-screen ml-[250px]">
       <div>
         <Image
           src={NotFoundImg}
@@ -27,7 +27,7 @@ export default function NotFound() {
       <div className="w-[400px] h-[60px]">
         <Button
           title="Go to Homepage"
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/questions")}
           bgColor="bg-primary-5"
           padding="px-16 py-3"
           fontSize="body-boldM"

@@ -22,3 +22,17 @@ export function formatDate(date: Date) {
 
   return `${year}-${month}-${day}`;
 }
+
+export function convertDateToENWithoutTime(date: Date | string): string {
+  if (!(date instanceof Date)) {
+    date = new Date(date);
+  }
+
+  const options: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  };
+
+  return new Intl.DateTimeFormat("en-US", options).format(date);
+}

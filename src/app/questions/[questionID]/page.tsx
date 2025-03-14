@@ -52,7 +52,7 @@ export default function Preview() {
 
   const toggleDisable = () => {
     setIsDisabled(!isDisabled);
-    enableDisableQuestionQuery({ question_id: questionID });
+    enableDisableQuestionQuery(questionID);
   };
 
   const toggleEditMode = () => {

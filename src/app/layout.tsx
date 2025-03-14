@@ -3,9 +3,13 @@
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { Providers } from "./providers";
+import { Metadata } from "next";
+import { config } from "@fortawesome/fontawesome-svg-core";
+
 import Navbar from "@/components/navbar";
 import "../styles/globals.css";
-import { Metadata } from "next";
+import "@fortawesome/fontawesome-svg-core/styles.css";
+config.autoAddCss = false;
 
 const metadata: Metadata = {
   title: "TOEIC Prep",
@@ -32,7 +36,7 @@ export default function RootLayout({
             <Suspense fallback={<div>Loading...</div>}>
               {!hideNavbarPages.includes(pathname) && <Navbar />}
             </Suspense>
-            <main className="flex-grow">{children}</main>
+            <main className="flex-grow mt-[60px]">{children}</main>
           </div>
         </Providers>
       </body>
