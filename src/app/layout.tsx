@@ -3,6 +3,10 @@ import "../styles/globals.css";
 import { Suspense } from "react";
 import { Providers } from "./providers";
 import Navbar from "@/components/navbar";
+import '@fortawesome/fontawesome-svg-core/styles.css';
+import { config } from '@fortawesome/fontawesome-svg-core';
+
+config.autoAddCss = false;
 
 export const metadata: Metadata = {
   title: "TOEIC Prep",
@@ -20,7 +24,7 @@ export default function RootLayout({
           <Suspense>
             <Navbar />
           </Suspense>
-          <main className="flex-grow">{children}</main>
+          <main className="flex-grow mt-[60px]">{children}</main>
         </div>
       </body>
     </html>

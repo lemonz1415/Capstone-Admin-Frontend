@@ -1,0 +1,474 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faEdit,
+  faTrash,
+  faKey,
+  faUser,
+  faUserCircle,
+  faCheck,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
+import toast, { Toaster } from "react-hot-toast";
+import { debounce } from "lodash";
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  getKeyValue,
+  Button,
+  Input,
+  Pagination,
+  Chip,
+  User,
+  Tooltip,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  DateRangePicker,
+} from "@heroui/react";
+import { convertDateToEN } from "@/util/util.function";
+import { getAllUsersQuery } from "@/query/user.query";
+import { parseDate } from "@internationalized/date";
+
+// กำหนด interface สำหรับข้อมูล User
+interface User {
+  user_id: number;
+  firstname: string;
+  lastname: string;
+  email: string;
+  update_at: string;
+  is_verify: boolean;
+  // role_id: "ADMIN" | "USER"; 
+  is_active: boolean;
+}
+
+export default function UserManagementPage() {
+  const router = useRouter();
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  // const [selectedRole, setSelectedRole] = useState<"ALL" | "ADMIN" | "USER">("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [dataFilter, setDataFilter] = useState({
+    search_filter: "",
+    // role_id: "",
+    is_active: "",
+    is_verify: "",
+    start_date: "",
+    end_date: "",
+    page: 1,
+    per_page: 10,
+  });
+
+  const [paginationInfo, setPaginationInfo] = useState({
+    totalPages: 0,
+    totalItems: 0,
+    per_page: dataFilter.per_page,
+    page: dataFilter.page,
+  });
+
+  // Fetch users เมื่อ dataFilter เปลี่ยนแปลง
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      try {
+        // console.log("dataFilter",dataFilter)
+        const response = await getAllUsersQuery(dataFilter);
+        // console.log("API Response:", response);
+        setUsers(response.data);
+        setPaginationInfo({
+          totalPages: response.totalItems === 0 ? 1 : response.totalPages,
+          totalItems: response.totalItems || paginationInfo.totalItems,
+          per_page: response.per_page || paginationInfo.per_page,
+          page: response.page || paginationInfo.page,
+        });
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        toast.error("Failed to load users");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [dataFilter]);
+
+  const handleCreateUser = () => {
+    // router.push("/users/create");
+  };
+
+  // const onRoleChange = (role: "ALL" | "ADMIN" | "USER") => {
+  //   setSelectedRole(role);
+  //   setDataFilter((prev) => ({
+  //     ...prev,
+  //     role_id: role === "ALL" ? "" : role,
+  //     page: 1,
+  //   }));
+  // };
+
+  const onDateChange = (date: any) => {
+    setDataFilter((prev) => ({
+      ...prev,
+      start_date: date.start
+        ? new Date(date.start).toISOString().split("T")[0]
+        : "",
+      end_date: date.end 
+        ? new Date(date.end).toISOString().split("T")[0] 
+        : "",
+      page: 1,
+    }));
+  };
+
+  const onVerificationStatusChange = (keys: any) => {
+    setDataFilter((prev) => ({
+      ...prev,
+      is_verify: keys.has("true") ? "true" : keys.has("false") ? "false" : "",
+      page: 1,
+    }));
+  };
+
+  const onActiveStatusChange = (keys: any) => {
+    setDataFilter((prev) => ({
+      ...prev,
+      is_active: keys.has("true") ? "true" : keys.has("false") ? "false" : "",
+      page: 1,
+    }));
+  };
+
+  const onPreview = (keys: any) => {
+    const userID = new Set(keys);
+    return router.push(`/users/${[...userID][0]}`);
+  };
+
+  const onDebounceSearch = debounce((value) => {
+    setSearchTerm(value);
+    setDataFilter((prev) => ({ ...prev, search_filter: value, page: 1 }));
+  });
+
+  const onChangePage = (newPage: number) => {
+    setCurrentPage(newPage);
+    setDataFilter((prev) => ({
+      ...prev,
+      page: newPage,
+    }));
+    // console.log(newPage)
+  };
+
+  const resetFilters = () => {
+    setDataFilter({
+      start_date: "",
+      end_date: "",
+      is_verify: "",
+      is_active: "",
+      page: 1,
+      per_page: 10,
+      search_filter: "",
+      // role_id: "",
+    });
+    setSearchTerm("");
+  };
+
+  const columns = [
+    { key: "name", label: "NAME" },
+    // { key: "role_id", label: "ROLE" },
+    { key: "is_verify", label: "VERIFIED" },
+    { key: "status", label: "STATUS" },
+    { key: "update_at", label: "UPDATE AT" },
+    // { key: "actions", label: "ACTIONS" },
+  ];
+
+  // Map ข้อมูลเพื่อแสดงผลในตาราง
+  const rows = users.map((user) => ({
+    key: user.user_id,
+    name: `${user.firstname} ${user.lastname}`,
+    email: user.email,
+    // role_id: user.role_id || "-",
+    is_verify: user.is_verify ? "Yes" : "No" ,
+    status: user.is_active,
+    update_at: user.update_at ? convertDateToEN(user.update_at) : "N/A", 
+  }));
+
+  const renderCell = (item: any, columnKey: any) => {
+    switch (columnKey) {
+      case "name":
+        return (
+          <User
+            avatarProps={{
+              icon: (
+                <FontAwesomeIcon
+                  icon={faUserCircle}
+                  size="2x"
+                  className="text-white"
+                />
+              ),
+              radius: "lg",
+              // style: {
+              //   backgroundColor: !item.status
+              //     ? "#D3D3D3"
+              //     : item.role_id === "ADMIN"
+              //     ? "#4CAF50"
+              //     : item.role_id === "USER"
+              //     ? "#2196F3"
+              //     : "#FFD700",
+              // },
+              style: {
+                backgroundColor: !item.status
+                  ? "#D3D3D3"
+                  : "#2196F3"
+              },
+            }}
+            description={item.email}
+            name={item.name}
+          />
+        );
+      case "status":
+        return (
+          <Chip
+            className="capitalize"
+            color={item.status ? "success" : "danger"}
+            size="sm"
+            variant="flat"
+          >
+            {item.status ? (
+              <>
+                <FontAwesomeIcon icon={faCheck} className="mr-1" />
+                Active
+              </>
+            ) : (
+              <>
+                <FontAwesomeIcon icon={faTimes} className="mr-1" />
+                Inactive
+              </>
+            )}
+          </Chip>
+        );
+      //   case "actions":
+      //     return (
+      //       <div className="relative flex items-center gap-2">
+      //         <Tooltip content="Edit user">
+      //           <span
+      //             className="text-lg text-default-400 cursor-pointer active:opacity-50"
+      //             onClick={() => handleEditUser(item.user_id)}
+      //           >
+      //             <FontAwesomeIcon icon={faEdit} />
+      //           </span>
+      //         </Tooltip>
+      //         <Tooltip color="danger" content="Delete user">
+      //           <span
+      //             className="text-lg text-danger cursor-pointer active:opacity-50"
+      //             onClick={() => handleDeleteUser(item.user_id)}
+      //           >
+      //             <FontAwesomeIcon icon={faTrash} />
+      //           </span>
+      //         </Tooltip>
+      //         <Tooltip content="Reset Password">
+      //           <span
+      //             className="text-lg text-warning cursor-pointer active:opacity-50"
+      //             onClick={() => handleResetPassword(item.user_id)}
+      //           >
+      //             <FontAwesomeIcon icon={faKey} />
+      //           </span>
+      //         </Tooltip>
+      //       </div>
+      // );
+      default:
+        return getKeyValue(item, columnKey);
+    }
+  };
+
+  return (
+    <div className="bg-gray-50 min-h-screen py-10 ml-[250px]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Toaster position="top-right" />
+
+      {/* Header Section */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-semibold text-gray-800">
+          User Management
+        </h1>
+      </div>
+
+      {/* Sub Header - User Filter */}
+      <div className="px-[10px] py-[10px] flex items-center justify-between border-b-2 border-gray-200 mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">Filter Users</h2>
+        <Button
+          color="success"
+          variant="solid"
+          onPress={handleCreateUser}
+          className="text-white"
+        >
+          Create New +
+        </Button>
+      </div>
+
+        {/* Filters Section*/}
+        <div className="bg-white rounded-lg shadow-2xl p-[30px] flex flex-wrap items-center gap-4">
+
+           {/* Search Bar */}
+          <div className="w-[350px] z-0">
+            <Input
+              label="Search"
+              placeholder="Search for what you're looking for"
+              type="search"
+              variant="underlined"
+              value={searchTerm}
+              onValueChange={onDebounceSearch}
+            />
+          </div>
+          {/* Date Range Picker */}
+          <div className="mt-0">
+            <DateRangePicker
+              className="max-w-xs"
+              label="Update date"
+              variant="flat"
+              value={{
+                start: dataFilter.start_date ? parseDate(dataFilter.start_date) : null,
+                end: dataFilter.end_date ? parseDate(dataFilter.end_date) : null
+              }}
+              onChange={(date) => onDateChange(date)}
+            />
+          </div>
+
+           {/* Dropdown Filters */}
+           <div className="z-0">
+          <Dropdown>
+            <DropdownTrigger>
+              <Button variant="flat" color="primary"  className="bg-blue-100 hover:bg-blue-50 text-blue-600">
+                Verification Status
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              selectedKeys={new Set([dataFilter.is_verify])} // ใช้ Set เพื่อรองรับ HeroUI
+              closeOnSelect={true}
+              selectionMode="single"
+              onSelectionChange={(keys) => onVerificationStatusChange(keys)}
+            >
+              <DropdownItem key="true">Verified</DropdownItem>
+              <DropdownItem key="false">Unverified</DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+          </div>
+          <div className="z-0">
+          <Dropdown>
+            <DropdownTrigger>
+              <Button variant="flat" color="success">
+                Active Status
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              selectedKeys={new Set([dataFilter.is_active])} // ใช้ Set เพื่อรองรับ HeroUI
+              closeOnSelect={true}
+              selectionMode="single"
+              onSelectionChange={(keys) => onActiveStatusChange(keys)}
+            >
+              <DropdownItem key="true">Active</DropdownItem>
+              <DropdownItem key="false">Inactive</DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+          </div>
+
+          {/* Reset Filters */}
+          <div className="ml-auto">
+            <Button
+              color="danger"
+              variant="flat"
+              onPress={resetFilters}
+            >
+              Reset Filters
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-col mt-[30px]">
+          {/* Tabs และ Table ในคอนเทนเนอร์เดียวกัน */}
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            {/* <div className="flex border-b border-gray-200">
+              <button
+                onClick={() => onRoleChange("ALL")}
+                className={`px-6 py-3 font-medium ${
+                  selectedRole === "ALL"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => onRoleChange("ADMIN")}
+                className={`px-6 py-3 font-medium ${
+                  selectedRole === "ADMIN"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <FontAwesomeIcon icon={faUser} className="mr-2" /> Admin
+              </button>
+              <button
+                onClick={() => onRoleChange("USER")}
+                className={`px-6 py-3 font-medium ${
+                  selectedRole === "USER"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <FontAwesomeIcon icon={faUser} className="mr-2" /> Member
+              </button>
+            </div> */}
+
+            <div>
+              <Table
+                aria-label="Example table with dynamic content"
+                isStriped
+                selectionBehavior="replace"
+                selectionMode="single"
+                color="success"
+                onSelectionChange={onPreview}
+              >
+                <TableHeader columns={columns}>
+                  {(column) => (
+                    <TableColumn key={column.key}>{column.label}</TableColumn>
+                  )}
+                </TableHeader>
+                {rows.length === 0 ? (
+                  <TableBody emptyContent={"No users found."}>{[]}</TableBody>
+                ) : (
+                  <TableBody items={rows}>
+                    {(item) => (
+                      <TableRow key={item.key}>
+                        {(columnKey) => (
+                          <TableCell>{renderCell(item, columnKey)}</TableCell>
+                        )}
+                      </TableRow>
+                    )}
+                  </TableBody>
+                )}
+              </Table>
+            </div>
+          </div>
+
+          {paginationInfo.totalPages > 1 && rows.length > 0 && (
+            <div className="flex justify-center mt-6">
+              <Pagination
+                initialPage={1}
+                page={paginationInfo.page}
+                total={paginationInfo.totalPages}
+                onChange={onChangePage}
+                variant="faded"
+                color="default"
+                size="lg"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

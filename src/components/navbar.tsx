@@ -1,50 +1,76 @@
-// components/Navbar.js
 "use client";
+
 import { lowerCase } from "lodash";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faClipboardList,
+  faUsers,
+  faSignInAlt,
+} from "@fortawesome/free-solid-svg-icons";
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
 
   const MENU = [
-    // { topic: "Dashboard", path: "/", disable: true },
-    { topic: "Manage Question", path: "/questions", disable: false },
-    // { topic: "Manage User", path: "/user", disable: true },
+    { topic: "Manage Question", path: "/questions", icon: faClipboardList },
+    { topic: "Manage User", path: "/users", icon: faUsers },
   ];
 
+  const isActive = (menuPath: string) => pathname.startsWith(menuPath);
+
   return (
-    <div className="flex">
+    <div className="flex h-screen">
+
       {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-r from-blue-600 to-blue-400 text-white fixed top-0 left-0 h-full p-6 flex flex-col justify-between">
-        <div>
-          {/* Logo */}
-          <div className="text-xl font-semibold mb-8">Management System</div>
-          <nav>
-            <ul>
-              {MENU?.map((m) => (
-                <li key={`menu_${lowerCase(m?.topic)}`}>
-                  <div
-                    className="block py-3 px-4 text-lg font-medium cursor-pointer hover:bg-blue-500 transition duration-300"
-                    onClick={() => router.push(m?.path)}
-                  >
-                    {m?.topic}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </nav>
+      <aside className="w-64 bg-[#1E3A8A] text-white fixed top-0 left-0 h-full flex flex-col shadow-lg">
+        
+        <div className="bg-gradient-to-r from-blue-500 to-blue-700 text-white text-xl font-bold py-6 px-6 shadow-md ">
+          Management System
         </div>
 
+        {/* Main Navigation */}
+        <nav className="p-4 pt-8">
+          <h3 className="text-sm font-semibold text-gray-300 mb-2 uppercase">
+            Main Menu
+          </h3>
+          <ul>
+            {MENU?.map((m) => (
+              <li key={`menu_${lowerCase(m?.topic)}`}>
+                <div
+                  className={`flex items-center w-full py-3 px-4 text-lg font-medium rounded-lg cursor-pointer transition duration-300 ${
+                    isActive(m.path)
+                      ? "bg-blue-500 text-white shadow-md" // Active State
+                      : "hover:bg-[#374151] hover:text-white"
+                  }`}
+                  onClick={() => router.push(m?.path)}
+                >
+                  <FontAwesomeIcon icon={m.icon} className="mr-3" />
+                  {m?.topic}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
+
+      {/* Main Header */}
+      <header className="flex items-center justify-between bg-white text-black text-xl font-medium py-4 px-6 fixed top-0 left-[16rem] right-0 shadow-md z-[5]">
+        <div>Welcome to the Admin Panel</div>
         {/* Login Button */}
-        <div className="flex justify-center mb-4">
           <div
-            className="w-full py-3 px-6 text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl text-xl font-semibold cursor-pointer hover:bg-blue-800 hover:shadow-lg transition duration-300"
+            className={`py-2 px-5 bg-blue-500 text-white rounded-lg text-lg font-medium cursor-pointer transition duration-300 hover:bg-blue-600 shadow-md ${
+              pathname === "/login"
+                ? "bg-blue-600 text-white shadow-lg" // Active State
+                : ""
+            }`}
             onClick={() => router.push("/login")}
           >
+            <FontAwesomeIcon icon={faSignInAlt} className="mr-2" />
             Login
           </div>
-        </div>
-      </aside>
+      </header>
     </div>
   );
 }
