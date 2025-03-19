@@ -1,16 +1,16 @@
-# ใช้ Node.js image สำหรับ build
+# ใช้ Node.js image
 FROM node:16 AS build
 
 # กำหนด working directory
 WORKDIR /app
 
-# คัดลอกไฟล์ package.json และ package-lock.json
+# คัดลอก package.json และ package-lock.json ก่อนเพื่อให้ Docker สามารถ cache ได้
 COPY package*.json ./
 
 # ติดตั้ง dependencies
 RUN npm install
 
-# คัดลอกไฟล์โค้ดทั้งหมด
+# คัดลอกไฟล์ทั้งหมด
 COPY . .
 
 # รันคำสั่ง build
@@ -21,14 +21,19 @@ FROM node:16-slim
 
 WORKDIR /app
 
-# คัดลอกไฟล์ที่ build เสร็จจากขั้นตอนก่อนหน้า
-COPY --from=build /app/dist /app/dist
+# คัดลอกไฟล์ build ที่สร้างเสร็จจากขั้นตอนก่อนหน้า
+COPY --from=build /app/.next /app/.next
+COPY --from=build /app/package*.json /app/
 
-# ตั้งค่า environment variable หรือค่าพอร์ตที่ใช้งาน
+# ติดตั้ง dependencies สำหรับ production
+RUN npm install --only=production
+
+# กำหนดพอร์ตที่ใช้งาน
 EXPOSE 3000
 
-# คำสั่งที่จะรันเมื่อ container เริ่มต้น
+# รันเซิร์ฟเวอร์ในโหมด production
 CMD ["npm", "start"]
+
 
 
 # # Use the official Node.js image
