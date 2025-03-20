@@ -43,36 +43,15 @@ jobs:
       run: |
         echo "Logging in to Docker Hub..."
         echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-        
-        if [[ "${{ github.event.inputs.branch }}" == "main" ]]; then
-        ENV_FILE=".env.production"
-        else
-        ENV_FILE=".env"
-        fi
-
+     
+        # Build Docker Image
         echo "Building Docker image $IMAGE_NAME:$IMAGE_TAG..."
-        docker build --env-file $ENV_FILE -f Dockerfile -t $IMAGE_NAME:$IMAGE_TAG .
+        docker build -f Dockerfile -t $IMAGE_NAME:$IMAGE_TAG .
 
+
+        # Push Docker Image to Docker Hub
         echo "Pushing Docker image to Docker Hub..."
         docker push $IMAGE_NAME:$IMAGE_TAG
-
-    # - name: Build and Push Docker Image
-    #   env:
-    #     IMAGE_NAME: wachrawit/my-frontend-app
-    #     IMAGE_TAG: ${{ github.event.inputs.branch }}
-    #   run: |
-    #     # Login to Docker Hub
-    #     echo "Logging in to Docker Hub..."
-    #     echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-    #     # Build Docker Image
-    #     echo "Building Docker image $IMAGE_NAME:$IMAGE_TAG..."
-    #     docker build -f Dockerfile -t $IMAGE_NAME:$IMAGE_TAG .
-
-
-    #     # Push Docker Image to Docker Hub
-    #     echo "Pushing Docker image to Docker Hub..."
-    #     docker push $IMAGE_NAME:$IMAGE_TAG
 
       # Deploy via SSH
     - name: Deploy via SSH
@@ -88,68 +67,23 @@ jobs:
           echo "Logging into Docker Hub..."
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-          if [[ "${{ github.event.inputs.branch }}" == "main" ]]; then
-          ENV_FILE=".env.production"
-          else
-          ENV_FILE=".env"
-          fi
-
           echo "Stopping and removing old container by name..."
-          docker stop my-frontend-user || true && docker rm my-frontend-user || true
-
+          docker stop my-frontend-app || true && docker rm my-frontend-app || true
+       
           echo "Removing old Docker image..."
           docker rmi -f $IMAGE_NAME:$IMAGE_TAG || echo "No previous image found."
-
+ 
           echo "Pulling latest Docker image..."
           docker pull $IMAGE_NAME:$IMAGE_TAG
 
           echo "Cleaning up unused Docker images..."
           docker image prune -f
 
-          echo "Starting new user frontend container..."
-          docker run -d --name my-frontend-user \
-          --env-file $ENV_FILE \
-          -p 4001:3000 \
-          $IMAGE_NAME:$IMAGE_TAG
-          echo "User frontend deployment complete!"
-
-    
-    # - name: Deploy via SSH
-    #   uses: appleboy/ssh-action@v1.0.0
-    #   with:
-    #     host: ${{ secrets.SSH_HOST }}
-    #     username: ${{ secrets.SSH_USERNAME }}
-    #     password: ${{ secrets.SSH_PASSWORD }}
-    #     script: |
-    #       IMAGE_NAME=wachrawit/my-frontend-app
-    #       IMAGE_TAG=${{ github.event.inputs.branch }}
-
-    #       # Login to Docker Hub
-    #       echo "Logging into Docker Hub..."
-    #       echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-    #       # Stop and Remove Old Container by Name
-    #       echo "Stopping and removing old container by name..."
-    #       docker stop my-frontend-app || true && docker rm my-frontend-app || true
-
-    #       # Remove Old Docker Image
-    #       echo "Removing old Docker image..."
-    #       docker rmi -f $IMAGE_NAME:$IMAGE_TAG || echo "No previous image found."
-
-    #       # Pull Docker Image
-    #       echo "Pulling latest Docker image..."
-    #       docker pull $IMAGE_NAME:$IMAGE_TAG
-
-    #       # Prune Dangling Images (Optional)
-    #       echo "Cleaning up unused Docker images..."
-    #       docker image prune -f
-
-    #       # Start New Container
-    #       echo "Starting new container..."
-    #       docker run -d --name my-frontend-app \
-    #         -p 3001:3000 \
-    #         $IMAGE_NAME:$IMAGE_TAG
-    #       echo "Deployment complete!"
+          echo "Starting new container..."
+          docker run -d --name my-frontend-app \
+            -p 3001:3000 \
+            $IMAGE_NAME:$IMAGE_TAG
+          echo "Deployment complete!"
 
 # name: Frontend CI/CD
 
