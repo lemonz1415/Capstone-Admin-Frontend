@@ -133,6 +133,10 @@ export default function UserDetailPage() {
     router.push(`/users/${userID}/edit`);
   };
 
+  const handleEditPermissions = () => {
+    router.push(`/users/${userID}/permission`);
+  };
+
   if (isLoading) {
     return <div className="text-center py-10">Loading user details...</div>;
   }
@@ -296,21 +300,24 @@ export default function UserDetailPage() {
             </div>
           </div>
 
-          {/* Role Section */}
+          {/* User Permission */}
           <div className="bg-white rounded-lg shadow-md px-8 py-6 mb-[30px]">
             <div className="flex justify-between items-center mb-[20px] mt-[-10px] border-b-1 border-grey-500">
               <h2 className="text-lg font-semibold text-gray-800">
                 USER PERMISSION
               </h2>
-              <Button variant="flat" color="primary" onPress={handleEdit}>
-                Edit Info
+              <Button
+                variant="flat"
+                color="primary"
+                onPress={handleEditPermissions}
+              >
+                Edit Permission
               </Button>
             </div>
 
             <div className="grid grid-cols-3 gap-x-12 gap-y-6">
               <div>
                 <p className="text-sm font-medium text-gray-600">Permission:</p>
-                <p>-</p>
               </div>
             </div>
           </div>
