@@ -51,7 +51,7 @@ RUN npm install
 COPY . .
 
 # รันคำสั่ง build
-RUN npm run build
+RUN npm run build || (tail -n 50 /app/.next/error.log && exit 1)
 
 # ใช้ image เบาๆ สำหรับ production
 FROM node:18-alpine AS runner
