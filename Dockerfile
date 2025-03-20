@@ -60,8 +60,10 @@ FROM node:18-alpine AS runner
 WORKDIR /app
 
 # คัดลอกไฟล์ build จากขั้นตอนก่อนหน้า
-COPY --from=build /app/.next /app/.next
-COPY --from=build /app/package*.json /app/
+COPY --from=builder /app/package.json ./ 
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
 
 # เปิดพอร์ตที่ใช้
 EXPOSE 3000
