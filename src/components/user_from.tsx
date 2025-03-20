@@ -5,12 +5,16 @@ import toast, { Toaster } from "react-hot-toast";
 import {
   createUserQuery,
   editUserQuery,
+  fetchMe,
   getUserDetailQuery,
 } from "@/query/user.query";
 import Modal from "./modal";
 import { formatDate } from "@/util/util.function";
 import { FaDownload, FaSpinner } from "react-icons/fa";
 import { every } from "lodash";
+import { useAuth } from "@/contexts/auth.context";
+import { faXmark } from "@fortawesome/free-solid-svg-icons";
+import { isPermissioned } from "@/util/auth";
 
 interface insertDataType {
   firstname: string;
@@ -43,6 +47,41 @@ export default function UserForm() {
     email: "",
     dob: "",
   });
+
+  //----------------
+  // AUTH
+  //----------------
+  const [user, setuser] = useState<any>(null);
+  const [isFetching, setIsFetching] = useState(true);
+  const [openUnauthorizeModal, setOpenUnauthorizeModal] = useState(false);
+
+  useEffect(() => {
+    console.log("fetch user");
+    const fetchUserData = async () => {
+      try {
+        const response = await fetchMe();
+        setuser(response);
+        setIsFetching(false);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        setuser(null);
+        setIsFetching(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const isAllowed =
+    isPermissioned(user, ["UPDATE_USER", "CREATE_USER"]) && !isFetching;
+
+  useEffect(() => {
+    if (isFetching) return;
+
+    if (!isAllowed) {
+      setOpenUnauthorizeModal(true);
+    }
+  }, [isPermissioned, isFetching, router]);
 
   const [isChange, setIsChange] = useState(false);
 
@@ -120,7 +159,6 @@ export default function UserForm() {
       dob: "",
     };
 
-    // Validate Firstname (Required and Max Length)
     if (!insertData.firstname.trim()) {
       newErrors.firstname = "First name is required.";
       isValid = false;
@@ -129,7 +167,6 @@ export default function UserForm() {
       isValid = false;
     }
 
-    // Validate Lastname (Required and Max Length)
     if (!insertData.lastname.trim()) {
       newErrors.lastname = "Last name is required.";
       isValid = false;
@@ -138,7 +175,6 @@ export default function UserForm() {
       isValid = false;
     }
 
-    // Validate Email (Required and Max Length)
     if (!insertData.email.trim()) {
       newErrors.email = "Email is required.";
       isValid = false;
@@ -153,7 +189,6 @@ export default function UserForm() {
       }
     }
 
-    // Validate Date of Birth (DOB should not be in the future)
     if (!insertData.dob) {
       newErrors.dob = "Date of birth is required.";
       isValid = false;
@@ -180,7 +215,7 @@ export default function UserForm() {
         if (response?.success) {
           setIsCreating(false);
           toast.success(`Edit user complete`);
-          // router.push("")
+          router.push("/users");
         } else {
           toast.error(`Failed to edit user: ${response?.data?.error}`);
         }
@@ -189,10 +224,7 @@ export default function UserForm() {
         if (response?.success) {
           setIsCreating(false);
           toast.success(`Create user complete`);
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
-          // router.push("")
+          router.push("/users");
         } else {
           toast.error(`Failed to create user: ${response?.data?.error}`);
         }
@@ -226,6 +258,15 @@ export default function UserForm() {
     <div className="min-h-screen bg-gray-100 flex justify-center items-center py-10">
       <Toaster position="top-right" />
       <Modal
+        isOpen={openUnauthorizeModal}
+        onClose={() => router.push("/profile")}
+        onConfirmFetch={() => router.push("/profile")}
+        icon={faXmark}
+        title="Unauthorized Access"
+        message="You do not have permission to access this resource."
+        confirmText="Confirm"
+      />
+      <Modal
         isOpen={isOpenModal}
         title={`Do you want to cancel ${
           user_id ? "editing" : "creating"
@@ -246,116 +287,118 @@ export default function UserForm() {
         onConfirmFetch={() => router.push(`/users`)}
         confirmText="Confirm"
       />
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-[1000px] ml-[250px]">
-        <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">
-          {`${user_id ? "Edit" : "Create"} user`}
-        </h2>
-        <form className="space-y-4">
-          <div className="flex space-x-4">
-            <div className="w-1/2">
+      {isAllowed && (
+        <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-[1000px] ml-[250px]">
+          <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">
+            {`${user_id ? "Edit" : "Create"} user`}
+          </h2>
+          <form className="space-y-4">
+            <div className="flex space-x-4">
+              <div className="w-1/2">
+                <label
+                  htmlFor="firstname"
+                  className="block text-sm font-medium text-gray-600"
+                >
+                  First Name <span className="text-red-3">*</span>
+                </label>
+                <input
+                  className="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => onSetFields(e, "firstname")}
+                  value={insertData.firstname}
+                  placeholder="Enter first name"
+                  maxLength={30}
+                />
+                {errors.firstname && (
+                  <p className="text-red-500 text-sm">{errors.firstname}</p>
+                )}
+              </div>
+              <div className="w-1/2">
+                <label
+                  htmlFor="lastname"
+                  className="block text-sm font-medium text-gray-600"
+                >
+                  Last Name <span className="text-red-3">*</span>
+                </label>
+                <input
+                  className="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => onSetFields(e, "lastname")}
+                  value={insertData.lastname}
+                  placeholder="Enter last name"
+                  maxLength={30}
+                />
+                {errors.lastname && (
+                  <p className="text-red-500 text-sm">{errors.lastname}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Email */}
+            <div>
               <label
-                htmlFor="firstname"
+                htmlFor="email"
                 className="block text-sm font-medium text-gray-600"
               >
-                First Name <span className="text-red-3">*</span>
+                Email <span className="text-red-3">*</span>
               </label>
               <input
                 className="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onChange={(e) => onSetFields(e, "firstname")}
-                value={insertData.firstname}
-                placeholder="Enter first name"
-                maxLength={30}
+                onChange={(e) => onSetFields(e, "email")}
+                value={insertData.email}
+                placeholder="Enter email address"
+                maxLength={50}
               />
-              {errors.firstname && (
-                <p className="text-red-500 text-sm">{errors.firstname}</p>
+              {errors.email && (
+                <p className="text-red-500 text-sm">{errors.email}</p>
               )}
             </div>
-            <div className="w-1/2">
+
+            {/* Birthdate */}
+            <div className="w-[400px]">
               <label
-                htmlFor="lastname"
+                htmlFor="birthdate"
                 className="block text-sm font-medium text-gray-600"
               >
-                Last Name <span className="text-red-3">*</span>
+                Date of Birth <span className="text-red-3">*</span>
               </label>
-              <input
-                className="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onChange={(e) => onSetFields(e, "lastname")}
-                value={insertData.lastname}
-                placeholder="Enter last name"
-                maxLength={30}
-              />
-              {errors.lastname && (
-                <p className="text-red-500 text-sm">{errors.lastname}</p>
-              )}
+              <div className="pt-[10px]">
+                <input
+                  type="date"
+                  className="border border-black bg-white text-black rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onChange={onSetDOB}
+                  value={String(insertData.dob)}
+                />
+                {errors.dob && (
+                  <p className="text-red-500 text-sm">{errors.dob}</p>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Email */}
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-600"
-            >
-              Email <span className="text-red-3">*</span>
-            </label>
-            <input
-              className="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onChange={(e) => onSetFields(e, "email")}
-              value={insertData.email}
-              placeholder="Enter email address"
-              maxLength={50}
-            />
-            {errors.email && (
-              <p className="text-red-500 text-sm">{errors.email}</p>
-            )}
-          </div>
-
-          {/* Birthdate */}
-          <div className="w-[400px]">
-            <label
-              htmlFor="birthdate"
-              className="block text-sm font-medium text-gray-600"
-            >
-              Date of Birth <span className="text-red-3">*</span>
-            </label>
-            <div className="pt-[10px]">
-              <input
-                type="date"
-                className="border border-black bg-white text-black rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                onChange={onSetDOB}
-                value={String(insertData.dob)}
-              />
-              {errors.dob && (
-                <p className="text-red-500 text-sm">{errors.dob}</p>
-              )}
+            <div className="flex justify-between pt-[10px]">
+              <div
+                onClick={onBack}
+                className="bg-gray-300 text-gray-800 px-6 py-2 rounded-md cursor-pointer hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Back
+              </div>
+              <div
+                onClick={onSubmit}
+                className="bg-blue-600 text-white px-6 py-2 rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 relative flex items-center justify-center"
+              >
+                {isCreating ? (
+                  <>
+                    {user_id ? "Editing" : "Creating"} &nbsp;
+                    <FaSpinner className="animate-spin text-white mr-2" />
+                  </>
+                ) : user_id ? (
+                  "Edit user"
+                ) : (
+                  "Create user"
+                )}
+              </div>
             </div>
-          </div>
-
-          <div className="flex justify-between pt-[10px]">
-            <div
-              onClick={onBack}
-              className="bg-gray-300 text-gray-800 px-6 py-2 rounded-md cursor-pointer hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Back
-            </div>
-            <div
-              onClick={onSubmit}
-              className="bg-blue-600 text-white px-6 py-2 rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 relative flex items-center justify-center"
-            >
-              {isCreating ? (
-                <>
-                  {user_id ? "Editing" : "Creating"} &nbsp;
-                  <FaSpinner className="animate-spin text-white mr-2" />
-                </>
-              ) : user_id ? (
-                "Edit user"
-              ) : (
-                "Create user"
-              )}
-            </div>
-          </div>
-        </form>
-      </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

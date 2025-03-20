@@ -1,4 +1,5 @@
 import axios, { AxiosError } from "axios";
+import { fetchWithAuth } from "./utils.query";
 
 const HOST_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -14,6 +15,11 @@ export interface User {
   is_active: boolean;
 }
 
+export const fetchMe = async () => {
+  const response = await fetchWithAuth(`/api/admin/user/me`, "GET");
+  return response?.user_detail;
+};
+
 export const getAllUsersQuery = async (params?: {
   search_filter?: string;
   is_verify?: string;
@@ -24,7 +30,14 @@ export const getAllUsersQuery = async (params?: {
   per_page?: number;
 }) => {
   try {
-    const response = await axios.get(`${HOST_URL}/api/admin/user`, { params });
+    // const response = await axios.get(`${HOST_URL}/api/admin/user`, { params });
+    const response = await fetchWithAuth(
+      `/api/admin/user`,
+      "GET",
+      null,
+      params
+    );
+
     return response.data;
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -39,11 +52,18 @@ export const createUserQuery = async (body: {
   dob: string | null;
 }) => {
   try {
-    const response = await axios.post(
-      `${HOST_URL}/api/admin/user/create`,
+    // const response = await axios.post(
+    //   `${HOST_URL}/api/admin/user/create`,
+    //   body
+    // );
+
+    const response = await fetchWithAuth(
+      `/api/admin/user/create`,
+      "POST",
       body
     );
-    return response?.data;
+
+    return response;
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       console.log(error);
@@ -65,11 +85,17 @@ export const editUserQuery = async (
   }
 ) => {
   try {
-    const response = await axios.put(
-      `${HOST_URL}/api/admin/user/${user_id}/edit`,
+    // const response = await axios.put(
+    //   `${HOST_URL}/api/admin/user/${user_id}/edit`,
+    //   body
+    // );
+
+    const response = await fetchWithAuth(
+      `/api/admin/user/${user_id}/edit`,
+      "PUT",
       body
     );
-    return response?.data;
+    return response;
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       console.log(error);
@@ -83,8 +109,20 @@ export const editUserQuery = async (
 
 // ฟังก์ชันสำหรับดึงข้อมูลผู้ใช้เฉพาะราย
 export const getUserDetailQuery = async (userId: string) => {
-  const response = await axios.get(`${HOST_URL}/api/admin/user/${userId}`);
-  return response.data.user_detail;
+  // const response = await axios.get(`${HOST_URL}/api/admin/user/${userId}`);
+
+  const response = await fetchWithAuth(`/api/admin/user/${userId}`, "GET");
+  return response.user_detail;
+};
+
+// ฟังก์ชันสำหรับ Soft Delete (เปลี่ยนสถานะ Active/Inactive)
+export const disableEnableUserQuery = async (userId: string) => {
+  // const response = await axios.put(
+  //   `${HOST_URL}/api/admin/user/${userId}/status`
+  // );
+
+  const response = fetchWithAuth(`/api/admin/user/${userId}/status`, "PUT");
+  return response;
 };
 
 export const setPasswordQuery = async (body: {
@@ -124,12 +162,4 @@ export const verifyEmailQuery = async (body: {
       return null;
     }
   }
-};
-
-// ฟังก์ชันสำหรับ Soft Delete (เปลี่ยนสถานะ Active/Inactive)
-export const disableEnableUserQuery = async (userId: string) => {
-  const response = await axios.put(
-    `${HOST_URL}/api/admin/user/${userId}/status`
-  );
-  return response.data;
 };

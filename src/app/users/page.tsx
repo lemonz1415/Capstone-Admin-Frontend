@@ -11,6 +11,7 @@ import {
   faUserCircle,
   faCheck,
   faTimes,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import toast, { Toaster } from "react-hot-toast";
 import { debounce } from "lodash";
@@ -35,8 +36,11 @@ import {
   DateRangePicker,
 } from "@heroui/react";
 import { convertDateToEN } from "@/util/util.function";
-import { getAllUsersQuery } from "@/query/user.query";
+import { fetchMe, getAllUsersQuery } from "@/query/user.query";
 import { parseDate } from "@internationalized/date";
+import Modal from "@/components/modal";
+import { useAuth } from "@/contexts/auth.context";
+import { isPermissioned } from "@/util/auth";
 
 // กำหนด interface สำหรับข้อมูล User
 interface User {
@@ -83,7 +87,7 @@ export default function UserManagementPage() {
         // console.log("dataFilter",dataFilter)
         const response = await getAllUsersQuery(dataFilter);
         // console.log("API Response:", response);
-        setUsers(response.data);
+        setUsers(response);
         setPaginationInfo({
           totalPages: response.totalItems === 0 ? 1 : response.totalPages,
           totalItems: response.totalItems || paginationInfo.totalItems,
@@ -280,116 +284,161 @@ export default function UserManagementPage() {
     }
   };
 
+  //----------------
+  // AUTH
+  //----------------
+  const [user, setUser] = useState<any>(null);
+  const [isFetching, setIsFetching] = useState(true);
+  const [openUnauthorizeModal, setOpenUnauthorizeModal] = useState(false);
+
+  useEffect(() => {
+    console.log("fetch user");
+    const fetchUserData = async () => {
+      try {
+        const response = await fetchMe();
+        setUser(response);
+        setIsFetching(false);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        setUser(null);
+        setIsFetching(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const isAllowed = isPermissioned(user, ["READ_USER"]) && !isFetching;
+  useEffect(() => {
+    if (isFetching) return;
+
+    if (!isAllowed) {
+      setOpenUnauthorizeModal(true);
+    }
+  }, [isPermissioned, isFetching, router]);
+
   return (
     <div className="bg-gray-50 min-h-screen py-10 ml-[250px]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Toaster position="top-right" />
+      <Modal
+        isOpen={openUnauthorizeModal}
+        onClose={() => router.push("/profile")}
+        onConfirmFetch={() => router.push("/profile")}
+        icon={faXmark}
+        title="Unauthorized Access"
+        message="You do not have permission to access this resource."
+        confirmText="Confirm"
+      />
+      {isAllowed && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Toaster position="top-right" />
 
-        {/* Header Section */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-semibold text-gray-800">
-            User Management
-          </h1>
-        </div>
-
-        {/* Sub Header - User Filter */}
-        <div className="px-[10px] py-[10px] flex items-center justify-between border-b-2 border-gray-200 mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Filter Users</h2>
-          <Button
-            color="success"
-            variant="solid"
-            onPress={handleCreateUser}
-            className="text-white"
-          >
-            Create New +
-          </Button>
-        </div>
-
-        {/* Filters Section*/}
-        <div className="bg-white rounded-lg shadow-2xl p-[30px] flex flex-wrap items-center gap-4">
-          {/* Search Bar */}
-          <div className="w-[350px] z-0">
-            <Input
-              label="Search"
-              placeholder="Search for what you're looking for"
-              type="search"
-              variant="underlined"
-              value={searchTerm}
-              onValueChange={onDebounceSearch}
-            />
-          </div>
-          {/* Date Range Picker */}
-          <div className="mt-0">
-            <DateRangePicker
-              className="max-w-xs"
-              label="Update date"
-              variant="flat"
-              value={{
-                start: dataFilter.start_date
-                  ? parseDate(dataFilter.start_date)
-                  : null,
-                end: dataFilter.end_date
-                  ? parseDate(dataFilter.end_date)
-                  : null,
-              }}
-              onChange={(date) => onDateChange(date)}
-            />
+          {/* Header Section */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-semibold text-gray-800">
+              User Management
+            </h1>
           </div>
 
-          {/* Dropdown Filters */}
-          <div className="z-0">
-            <Dropdown>
-              <DropdownTrigger>
-                <Button
-                  variant="flat"
-                  color="primary"
-                  className="bg-blue-100 hover:bg-blue-50 text-blue-600"
-                >
-                  Verification Status
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                selectedKeys={new Set([dataFilter.is_verify])} // ใช้ Set เพื่อรองรับ HeroUI
-                closeOnSelect={true}
-                selectionMode="single"
-                onSelectionChange={(keys) => onVerificationStatusChange(keys)}
-              >
-                <DropdownItem key="true">Verified</DropdownItem>
-                <DropdownItem key="false">Unverified</DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          </div>
-          <div className="z-0">
-            <Dropdown>
-              <DropdownTrigger>
-                <Button variant="flat" color="success">
-                  Active Status
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                selectedKeys={new Set([dataFilter.is_active])} // ใช้ Set เพื่อรองรับ HeroUI
-                closeOnSelect={true}
-                selectionMode="single"
-                onSelectionChange={(keys) => onActiveStatusChange(keys)}
-              >
-                <DropdownItem key="true">Active</DropdownItem>
-                <DropdownItem key="false">Inactive</DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          </div>
-
-          {/* Reset Filters */}
-          <div className="ml-auto">
-            <Button color="danger" variant="flat" onPress={resetFilters}>
-              Reset Filters
+          {/* Sub Header - User Filter */}
+          <div className="px-[10px] py-[10px] flex items-center justify-between border-b-2 border-gray-200 mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Filter Users
+            </h2>
+            <Button
+              color="success"
+              variant="solid"
+              onPress={handleCreateUser}
+              className="text-white"
+            >
+              Create New +
             </Button>
           </div>
-        </div>
 
-        <div className="flex flex-col mt-[30px]">
-          {/* Tabs และ Table ในคอนเทนเนอร์เดียวกัน */}
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            {/* <div className="flex border-b border-gray-200">
+          {/* Filters Section*/}
+          <div className="bg-white rounded-lg shadow-2xl p-[30px] flex flex-wrap items-center gap-4">
+            {/* Search Bar */}
+            <div className="w-[350px] z-0">
+              <Input
+                label="Search"
+                placeholder="Search for what you're looking for"
+                type="search"
+                variant="underlined"
+                value={searchTerm}
+                onValueChange={onDebounceSearch}
+              />
+            </div>
+            {/* Date Range Picker */}
+            <div className="mt-0">
+              <DateRangePicker
+                className="max-w-xs"
+                label="Update date"
+                variant="flat"
+                value={{
+                  start: dataFilter.start_date
+                    ? parseDate(dataFilter.start_date)
+                    : null,
+                  end: dataFilter.end_date
+                    ? parseDate(dataFilter.end_date)
+                    : null,
+                }}
+                onChange={(date) => onDateChange(date)}
+              />
+            </div>
+
+            {/* Dropdown Filters */}
+            <div className="z-0">
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button
+                    variant="flat"
+                    color="primary"
+                    className="bg-blue-100 hover:bg-blue-50 text-blue-600"
+                  >
+                    Verification Status
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  selectedKeys={new Set([dataFilter.is_verify])} // ใช้ Set เพื่อรองรับ HeroUI
+                  closeOnSelect={true}
+                  selectionMode="single"
+                  onSelectionChange={(keys) => onVerificationStatusChange(keys)}
+                >
+                  <DropdownItem key="true">Verified</DropdownItem>
+                  <DropdownItem key="false">Unverified</DropdownItem>
+                </DropdownMenu>
+              </Dropdown>
+            </div>
+            <div className="z-0">
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button variant="flat" color="success">
+                    Active Status
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  selectedKeys={new Set([dataFilter.is_active])} // ใช้ Set เพื่อรองรับ HeroUI
+                  closeOnSelect={true}
+                  selectionMode="single"
+                  onSelectionChange={(keys) => onActiveStatusChange(keys)}
+                >
+                  <DropdownItem key="true">Active</DropdownItem>
+                  <DropdownItem key="false">Inactive</DropdownItem>
+                </DropdownMenu>
+              </Dropdown>
+            </div>
+
+            {/* Reset Filters */}
+            <div className="ml-auto">
+              <Button color="danger" variant="flat" onPress={resetFilters}>
+                Reset Filters
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-col mt-[30px]">
+            {/* Tabs และ Table ในคอนเทนเนอร์เดียวกัน */}
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              {/* <div className="flex border-b border-gray-200">
               <button
                 onClick={() => onRoleChange("ALL")}
                 className={`px-6 py-3 font-medium ${
@@ -422,52 +471,53 @@ export default function UserManagementPage() {
               </button>
             </div> */}
 
-            <div>
-              <Table
-                aria-label="Example table with dynamic content"
-                isStriped
-                selectionBehavior="replace"
-                selectionMode="single"
-                color="success"
-                onSelectionChange={onPreview}
-              >
-                <TableHeader columns={columns}>
-                  {(column) => (
-                    <TableColumn key={column.key}>{column.label}</TableColumn>
-                  )}
-                </TableHeader>
-                {rows.length === 0 ? (
-                  <TableBody emptyContent={"No users found."}>{[]}</TableBody>
-                ) : (
-                  <TableBody items={rows}>
-                    {(item) => (
-                      <TableRow key={item.key}>
-                        {(columnKey) => (
-                          <TableCell>{renderCell(item, columnKey)}</TableCell>
-                        )}
-                      </TableRow>
+              <div>
+                <Table
+                  aria-label="Example table with dynamic content"
+                  isStriped
+                  selectionBehavior="replace"
+                  selectionMode="single"
+                  color="success"
+                  onSelectionChange={onPreview}
+                >
+                  <TableHeader columns={columns}>
+                    {(column) => (
+                      <TableColumn key={column.key}>{column.label}</TableColumn>
                     )}
-                  </TableBody>
-                )}
-              </Table>
+                  </TableHeader>
+                  {rows.length === 0 ? (
+                    <TableBody emptyContent={"No users found."}>{[]}</TableBody>
+                  ) : (
+                    <TableBody items={rows}>
+                      {(item) => (
+                        <TableRow key={item.key}>
+                          {(columnKey) => (
+                            <TableCell>{renderCell(item, columnKey)}</TableCell>
+                          )}
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  )}
+                </Table>
+              </div>
             </div>
-          </div>
 
-          {paginationInfo.totalPages > 1 && rows.length > 0 && (
-            <div className="flex justify-center mt-6">
-              <Pagination
-                initialPage={1}
-                page={paginationInfo.page}
-                total={paginationInfo.totalPages}
-                onChange={onChangePage}
-                variant="faded"
-                color="default"
-                size="lg"
-              />
-            </div>
-          )}
+            {paginationInfo.totalPages > 1 && rows.length > 0 && (
+              <div className="flex justify-center mt-6">
+                <Pagination
+                  initialPage={1}
+                  page={paginationInfo.page}
+                  total={paginationInfo.totalPages}
+                  onChange={onChangePage}
+                  variant="faded"
+                  color="default"
+                  size="lg"
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

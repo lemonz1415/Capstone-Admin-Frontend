@@ -12,6 +12,10 @@ import {
 } from "@/query/question.query";
 import { createOptionQuery } from "@/query/option.query";
 import { getAllSkillQuery } from "@/query/skill.query";
+import { useAuth } from "@/contexts/auth.context";
+import { faXmark } from "@fortawesome/free-solid-svg-icons";
+import { fetchMe } from "@/query/user.query";
+import { isPermissioned } from "@/util/auth";
 
 interface QuestionFormProps {
   mode: "create" | "update";
@@ -37,6 +41,7 @@ const MAX_QUESTION_LENGTH = 300; // กำหนด max length ของ questio
 const MAX_OPTION_LENGTH = 300; // กำหนด max length ของ option
 export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
   const router = useRouter();
+
   const [skills, setSkills] = useState<Skill[]>([]); // ดึงข้อมูล skill มาแสดง
   const [skillId, setSkillId] = useState<number | null>(null); // เก็บ skill ที่ผู้ใช้เลือก
   const [questionText, setQuestionText] = useState("");
@@ -385,6 +390,44 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     }
   };
 
+  //----------------
+  // AUTH
+  //----------------
+  const [user, setUser] = useState<any>(null);
+  const [isFetching, setIsFetching] = useState(true);
+  const [openUnauthorizeModal, setOpenUnauthorizeModal] = useState(false);
+
+  useEffect(() => {
+    console.log("fetch user");
+    const fetchUserData = async () => {
+      try {
+        const response = await fetchMe();
+        setUser(response);
+        setIsFetching(false);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        setUser(null);
+        setIsFetching(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const isAllowed =
+    isPermissioned(user, [
+      "CREATE_QUESTION",
+      "UPDATE_QUESTION",
+      "READ_QUESTION",
+    ]) && !isFetching;
+  useEffect(() => {
+    if (isFetching) return;
+
+    if (!isAllowed) {
+      setOpenUnauthorizeModal(true);
+    }
+  }, [isPermissioned, isFetching, router]);
+
   // แสดงหน้า load รอจนตัว editor และ ข้อมูลถูกดึงมา ( กรณีเป็น update ) จนเสร็จก่อนค่อยแสดงทั้งหมดพร้อมกัน
   if (isInitialLoading || !isEditorReady) {
     return (
@@ -402,6 +445,15 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     <div className="bg-gray-50 min-h-screen py-8 ml-[250px]">
       <Toaster position="top-right" />
       {/* Modal */}
+      <Modal
+        isOpen={openUnauthorizeModal}
+        onClose={() => router.push("/profile")}
+        onConfirmFetch={() => router.push("/profile")}
+        icon={faXmark}
+        title="Unauthorized Access"
+        message="You do not have permission to access this resource."
+        confirmText="Confirm"
+      />
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -480,201 +532,204 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
         actionType="default"
         isPreview={true}
       />
-      <div className="max-w-5xl mx-auto px-4">
-        {/* Header Section */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-          <div className="flex items-center">
-            <button
-              onClick={() => handleNavigation("/questions")}
-              className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <IoChevronBack className="w-6 h-6 text-gray-600" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">
-                {mode === "create" ? "Create New Question" : "Update Question"}
-              </h1>
-              <p className="text-gray-600 mt-2">
-                {mode === "create"
-                  ? "Add a new question to your question bank"
-                  : "Edit existing question in your question bank"}
-              </p>
+      {isAllowed && (
+        <div className="max-w-5xl mx-auto px-4">
+          {/* Header Section */}
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+            <div className="flex items-center">
+              <button
+                onClick={() => handleNavigation("/questions")}
+                className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <IoChevronBack className="w-6 h-6 text-gray-600" />
+              </button>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">
+                  {mode === "create"
+                    ? "Create New Question"
+                    : "Update Question"}
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  {mode === "create"
+                    ? "Add a new question to your question bank"
+                    : "Edit existing question in your question bank"}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Main Form Section */}
-        <div className="bg-white rounded-xl shadow-sm">
-          <form onSubmit={handleFormSubmit} className="p-6">
-            {/* Skill Selection */}
-            <div className="mb-8">
-              <label
-                htmlFor="skill"
-                className="block text-sm font-semibold text-gray-700 mb-2"
-              >
-                Select Skill Category
-              </label>
-              <select
-                id="skill"
-                value={String(skillId ?? "")}
-                onChange={onSelectSkill}
-                disabled={isLoading}
-                className={`block w-full pl-4 pr-10 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out bg-white ${
-                  isLoading ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                <option value="">Choose a skill type...</option>
-                {skills?.map((skill) => (
-                  <option
-                    key={skill.skill_id}
-                    value={skill.skill_id?.toString()}
-                  >
-                    {skill.skill_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Question Text */}
-            <div className="mb-8">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Question Text
-              </label>
-              <TiptapEditor
-                content={questionText}
-                onChange={onEditorChange}
-                // onInit={() => setIsEditorReady(true)}
-                immediatelyRender={false}
-                editorProps={{
-                  attributes: {
-                    class: "prose focus:outline-none max-w-full",
-                  },
-                }}
-              />
-            </div>
-
-            {/* Options Section */}
-            <div className="grid grid-cols-2 gap-6">
-              {options.map((option, index) => (
-                <div key={index} className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        id={`isCorrect${index}`}
-                        checked={option.is_correct}
-                        onChange={(e) => onSelectAnswer(index, e)}
-                        className={`h-4 w-4 text-blue-600 border-gray-300 ${
-                          isLoading ? "cursor-not-allowed" : ""
-                        }`}
-                        disabled={isLoading}
-                      />
-                      <label className="ml-2 text-sm font-medium text-gray-700">
-                        Choice {String.fromCharCode(65 + index)}
-                      </label>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => handleMoveOption(index, "up")}
-                        disabled={index === 0 || isLoading}
-                        className="p-1 text-gray-500 hover:bg-gray-100 rounded disabled:opacity-50"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleMoveOption(index, "down")}
-                        disabled={index === options.length - 1 || isLoading}
-                        className="p-1 text-gray-500 hover:bg-gray-100 rounded disabled:opacity-50"
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveOption(index)}
-                        disabled={isLoading}
-                        className="p-1 text-red-500 hover:bg-red-50 rounded disabled:opacity-50"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                  <input
-                    type="text"
-                    id={`option${index}`}
-                    value={option.option_text}
-                    onChange={(e) => handleOptionChange(index, e)}
-                    maxLength={MAX_OPTION_LENGTH}
-                    placeholder="Enter choice text..."
-                    className={`w-full p-2.5 border border-gray-200 rounded-lg focus:ring-0 focus:border-gray-300 ${
-                      isLoading ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                    disabled={isLoading}
-                  />
-                </div>
-              ))}
-
-              {/* Add Option Button */}
-              <div className="col-span-2">
-                <button
-                  type="button"
-                  onClick={handleAddOption}
-                  disabled={options.length >= 5 || isLoading}
-                  className="w-full p-2 mt-2 text-gray-600 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          {/* Main Form Section */}
+          <div className="bg-white rounded-xl shadow-sm">
+            <form onSubmit={handleFormSubmit} className="p-6">
+              {/* Skill Selection */}
+              <div className="mb-8">
+                <label
+                  htmlFor="skill"
+                  className="block text-sm font-semibold text-gray-700 mb-2"
                 >
-                  + Add Option
-                </button>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="mt-8 flex justify-between">
-              <div className="flex space-x-4">
-                <button
-                  type="button"
-                  onClick={() => handleNavigation("/questions")}
+                  Select Skill Category
+                </label>
+                <select
+                  id="skill"
+                  value={String(skillId ?? "")}
+                  onChange={onSelectSkill}
                   disabled={isLoading}
-                  className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-150 ease-in-out"
+                  className={`block w-full pl-4 pr-10 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out bg-white ${
+                    isLoading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleClearForm}
-                  disabled={isLoading || !isFormChanges()}
-                  className="px-8 py-3 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Clear Form
-                </button>
+                  <option value="">Choose a skill type...</option>
+                  {skills?.map((skill) => (
+                    <option
+                      key={skill.skill_id}
+                      value={skill.skill_id?.toString()}
+                    >
+                      {skill.skill_name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="flex space-x-4">
-                <button
-                  type="button"
-                  onClick={handlePreview}
-                  disabled={
-                    !isFormValid() ||
-                    isLoading ||
-                    (mode === "update" && !isDataUpdate())
-                  }
-                  className={`px-8 py-3 border border-blue-300 rounded-lg transition duration-150 ease-in-out
+              {/* Question Text */}
+              <div className="mb-8">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Question Text
+                </label>
+                <TiptapEditor
+                  content={questionText}
+                  onChange={onEditorChange}
+                  // onInit={() => setIsEditorReady(true)}
+                  immediatelyRender={false}
+                  editorProps={{
+                    attributes: {
+                      class: "prose focus:outline-none max-w-full",
+                    },
+                  }}
+                />
+              </div>
+
+              {/* Options Section */}
+              <div className="grid grid-cols-2 gap-6">
+                {options.map((option, index) => (
+                  <div key={index} className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id={`isCorrect${index}`}
+                          checked={option.is_correct}
+                          onChange={(e) => onSelectAnswer(index, e)}
+                          className={`h-4 w-4 text-blue-600 border-gray-300 ${
+                            isLoading ? "cursor-not-allowed" : ""
+                          }`}
+                          disabled={isLoading}
+                        />
+                        <label className="ml-2 text-sm font-medium text-gray-700">
+                          Choice {String.fromCharCode(65 + index)}
+                        </label>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleMoveOption(index, "up")}
+                          disabled={index === 0 || isLoading}
+                          className="p-1 text-gray-500 hover:bg-gray-100 rounded disabled:opacity-50"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveOption(index, "down")}
+                          disabled={index === options.length - 1 || isLoading}
+                          className="p-1 text-gray-500 hover:bg-gray-100 rounded disabled:opacity-50"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOption(index)}
+                          disabled={isLoading}
+                          className="p-1 text-red-500 hover:bg-red-50 rounded disabled:opacity-50"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                    <input
+                      type="text"
+                      id={`option${index}`}
+                      value={option.option_text}
+                      onChange={(e) => handleOptionChange(index, e)}
+                      maxLength={MAX_OPTION_LENGTH}
+                      placeholder="Enter choice text..."
+                      className={`w-full p-2.5 border border-gray-200 rounded-lg focus:ring-0 focus:border-gray-300 ${
+                        isLoading ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                      disabled={isLoading}
+                    />
+                  </div>
+                ))}
+
+                {/* Add Option Button */}
+                <div className="col-span-2">
+                  <button
+                    type="button"
+                    onClick={handleAddOption}
+                    disabled={options.length >= 5 || isLoading}
+                    className="w-full p-2 mt-2 text-gray-600 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    + Add Option
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="mt-8 flex justify-between">
+                <div className="flex space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => handleNavigation("/questions")}
+                    disabled={isLoading}
+                    className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-150 ease-in-out"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearForm}
+                    disabled={isLoading || !isFormChanges()}
+                    className="px-8 py-3 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Clear Form
+                  </button>
+                </div>
+
+                <div className="flex space-x-4">
+                  <button
+                    type="button"
+                    onClick={handlePreview}
+                    disabled={
+                      !isFormValid() ||
+                      isLoading ||
+                      (mode === "update" && !isDataUpdate())
+                    }
+                    className={`px-8 py-3 border border-blue-300 rounded-lg transition duration-150 ease-in-out
         ${
           !isFormValid() || isLoading || (mode === "update" && !isDataUpdate())
             ? "text-gray-400 cursor-not-allowed"
             : "text-blue-600 hover:bg-blue-50"
         }`}
-                >
-                  Preview
-                </button>
-                <button
-                  type="submit"
-                  disabled={
-                    !isFormValid() ||
-                    isLoading ||
-                    (mode === "update" && !isDataUpdate())
-                  }
-                  className={`inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white 
+                  >
+                    Preview
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      !isFormValid() ||
+                      isLoading ||
+                      (mode === "update" && !isDataUpdate())
+                    }
+                    className={`inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white 
         ${
           isFormValid() &&
           !isLoading &&
@@ -683,20 +738,21 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
             : "bg-gray-400 cursor-not-allowed"
         }
         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition duration-150 ease-in-out`}
-                >
-                  {isLoading
-                    ? mode === "create"
-                      ? "Creating..."
-                      : "Updating..."
-                    : mode === "create"
-                    ? "Create Question"
-                    : "Update Question"}
-                </button>
+                  >
+                    {isLoading
+                      ? mode === "create"
+                        ? "Creating..."
+                        : "Updating..."
+                      : mode === "create"
+                      ? "Create Question"
+                      : "Update Question"}
+                  </button>
+                </div>
               </div>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

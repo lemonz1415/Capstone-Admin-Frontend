@@ -1,7 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { FaTimes } from "react-icons/fa";
 import {
   Table,
   TableHeader,
@@ -19,17 +18,17 @@ import {
   Input,
 } from "@heroui/react";
 
-import {
-  Pagination,
-  PaginationItem,
-  PaginationCursor,
-} from "@heroui/pagination";
+import { Pagination } from "@heroui/pagination";
 
 import { getAllSkillQuery } from "@/query/skill.query";
 import { getAllQuestionQuery } from "@/query/question.query";
 import { convertDateToEN } from "@/util/util.function";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { debounce } from "lodash";
+import { useAuth } from "@/contexts/auth.context";
+import Modal from "@/components/modal";
+import { faXmark } from "@fortawesome/free-solid-svg-icons";
+import { isPermissioned } from "@/util/auth";
+import { fetchMe } from "@/query/user.query";
 
 export default function ManageQuestion() {
   const router = useRouter();
@@ -164,133 +163,180 @@ export default function ManageQuestion() {
     return router.push(`/questions/${[...questionID][0]}`);
   };
 
-  // ฟังก์ชันที่ใช้ในการจัดการ search เมื่อ user พิมพ์
   const onDebounceSearch = debounce((value) => {
     setDataFilter((prev: any) => ({
       ...prev,
       search_filter: value,
       page: 1,
     }));
-  }, 500); // เวลาหน่วง (500ms) ก่อนที่ function นี้จะถูกเรียกใช้หลังจาก user หยุดพิมพ์
+  }, 500);
+
+  //----------------
+  // AUTH
+  //----------------
+  const [user, setUser] = useState<any>(null);
+  const [isFetching, setIsFetching] = useState(true);
+  const [openUnauthorizeModal, setOpenUnauthorizeModal] = useState(false);
+
+  useEffect(() => {
+    console.log("fetch user");
+    const fetchUserData = async () => {
+      try {
+        const response = await fetchMe();
+        setUser(response);
+        setIsFetching(false);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        setUser(null);
+        setIsFetching(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const isAllowed = isPermissioned(user, "READ_QUESTION") && !isFetching;
+  useEffect(() => {
+    if (isFetching) return;
+
+    if (!isAllowed) {
+      setOpenUnauthorizeModal(true);
+    }
+  }, [isPermissioned, isFetching, router]);
 
   return (
     <div className="bg-gray-50 min-h-screen py-10 ml-[250px]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header Section */}
-        <h1 className="text-3xl font-semibold text-gray-800 mb-6">
-          Question Management
-        </h1>
+      {!isFetching && (
+        <Modal
+          isOpen={openUnauthorizeModal}
+          onClose={() => router.push("/profile")}
+          onConfirmFetch={() => router.push("/profile")}
+          icon={faXmark}
+          title="Unauthorized Access"
+          message="You do not have permission to access this resource."
+          confirmText="Confirm"
+        />
+      )}
+      {isAllowed && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header Section */}
+          <h1 className="text-3xl font-semibold text-gray-800 mb-6">
+            Question Management
+          </h1>
 
-        <div className="bg-white rounded-lg shadow-2xl p-[30px] flex flex-wrap items-center">
-          <div className="w-[350px]">
-            <Input
-              label="Search"
-              placeholder="Search for what you're looking for"
-              type="search"
-              variant="underlined"
-              onValueChange={onDebounceSearch}
-            />
-          </div>
-          {/* Date Range Picker */}
-          <div className="mt-0 pl-[50px]">
-            <DateRangePicker
-              className="max-w-xs"
-              label="Create date"
-              variant="flat"
-              onChange={onSetDate}
-            />
-          </div>
-
-          {/* Skills Dropdown */}
-          <div className="pl-[50px]">
-            <Dropdown>
-              <DropdownTrigger>
-                <Button className="capitalize" variant="flat">
-                  Select skills
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Multiple selection example"
-                closeOnSelect={false}
-                selectedKeys={selectedKeys}
-                selectionMode="multiple"
-                variant="shadow"
-                onSelectionChange={(keys) => setSelectedKeys(keys)}
-                onAction={(key) => onSelectSkill(key)}
-              >
-                {skills.map((skill) => (
-                  <DropdownItem key={skill.skill_id}>
-                    {skill.skill_name}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-          </div>
-
-          <div className="ml-auto">
-            <Button
-              color="success"
-              variant="flat"
-              onPress={() => router.push("/questions/create")}
-            >
-              Create New +
-            </Button>
-          </div>
-        </div>
-
-        {questions?.data && (
-          <div className="flex flex-col mt-[30px]">
-            {/* Table */}
-            <div className="flex justify-center">
-              <Table
-                aria-label="Example table with dynamic content"
-                isStriped
-                selectionBehavior="replace"
-                selectionMode="single"
-                color="success"
-                onSelectionChange={onPreview}
-              >
-                <TableHeader columns={columns}>
-                  {(column) => (
-                    <TableColumn key={column.key}>{column.label}</TableColumn>
-                  )}
-                </TableHeader>
-                {questions?.data?.length === 0 ? (
-                  <TableBody emptyContent={"No rows to display."}>
-                    {[]}
-                  </TableBody>
-                ) : (
-                  <TableBody items={rows}>
-                    {(item) => (
-                      <TableRow key={item.key}>
-                        {(columnKey) => (
-                          <TableCell>{getKeyValue(item, columnKey)}</TableCell>
-                        )}
-                      </TableRow>
-                    )}
-                  </TableBody>
-                )}
-              </Table>
+          <div className="bg-white rounded-lg shadow-2xl p-[30px] flex flex-wrap items-center">
+            <div className="w-[350px]">
+              <Input
+                label="Search"
+                placeholder="Search for what you're looking for"
+                type="search"
+                variant="underlined"
+                onValueChange={onDebounceSearch}
+              />
+            </div>
+            {/* Date Range Picker */}
+            <div className="mt-0 pl-[50px]">
+              <DateRangePicker
+                className="max-w-xs"
+                label="Create date"
+                variant="flat"
+                onChange={onSetDate}
+              />
             </div>
 
-            {/* Pagination */}
-            {questions?.data?.length > 0 && (
-              <div className="pt-[25px] flex justify-center left-auto">
-                <Pagination
-                  initialPage={1}
-                  page={questions?.page}
-                  total={Number(questions?.totalPages)}
-                  onChange={onChangePage}
-                  variant="faded"
-                  color="default"
-                  size="lg"
-                />
-              </div>
-            )}
+            {/* Skills Dropdown */}
+            <div className="pl-[50px]">
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button className="capitalize" variant="flat">
+                    Select skills
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  disallowEmptySelection
+                  aria-label="Multiple selection example"
+                  closeOnSelect={false}
+                  selectedKeys={selectedKeys}
+                  selectionMode="multiple"
+                  variant="shadow"
+                  onSelectionChange={(keys) => setSelectedKeys(keys)}
+                  onAction={(key) => onSelectSkill(key)}
+                >
+                  {skills?.map((skill) => (
+                    <DropdownItem key={skill.skill_id}>
+                      {skill.skill_name}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
+            </div>
+
+            <div className="ml-auto">
+              <Button
+                color="success"
+                variant="flat"
+                onPress={() => router.push("/questions/create")}
+              >
+                Create New +
+              </Button>
+            </div>
           </div>
-        )}
-      </div>
+
+          {questions?.data && (
+            <div className="flex flex-col mt-[30px]">
+              {/* Table */}
+              <div className="flex justify-center">
+                <Table
+                  aria-label="Example table with dynamic content"
+                  isStriped
+                  selectionBehavior="replace"
+                  selectionMode="single"
+                  color="success"
+                  onSelectionChange={onPreview}
+                >
+                  <TableHeader columns={columns}>
+                    {(column) => (
+                      <TableColumn key={column.key}>{column.label}</TableColumn>
+                    )}
+                  </TableHeader>
+                  {questions?.data?.length === 0 ? (
+                    <TableBody emptyContent={"No rows to display."}>
+                      {[]}
+                    </TableBody>
+                  ) : (
+                    <TableBody items={rows}>
+                      {(item) => (
+                        <TableRow key={item.key}>
+                          {(columnKey) => (
+                            <TableCell>
+                              {getKeyValue(item, columnKey)}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  )}
+                </Table>
+              </div>
+
+              {/* Pagination */}
+              {questions?.data?.length > 0 && (
+                <div className="pt-[25px] flex justify-center left-auto">
+                  <Pagination
+                    initialPage={1}
+                    page={questions?.page}
+                    total={Number(questions?.totalPages)}
+                    onChange={onChangePage}
+                    variant="faded"
+                    color="default"
+                    size="lg"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

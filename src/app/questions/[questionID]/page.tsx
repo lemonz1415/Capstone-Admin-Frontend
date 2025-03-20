@@ -16,6 +16,11 @@ import {
 } from "@/query/question.query";
 
 import parse from "html-react-parser";
+import { useAuth } from "@/contexts/auth.context";
+import Modal from "@/components/modal";
+import { faXmark } from "@fortawesome/free-solid-svg-icons";
+import { isPermissioned } from "@/util/auth";
+import { fetchMe } from "@/query/user.query";
 
 export default function Preview() {
   const router = useRouter();
@@ -59,77 +64,121 @@ export default function Preview() {
     setIsEditMode(!isEditMode);
   };
 
+  //----------------
+  // AUTH
+  //----------------
+  const [user, setUser] = useState<any>(null);
+  const [isFetching, setIsFetching] = useState(true);
+  const [openUnauthorizeModal, setOpenUnauthorizeModal] = useState(false);
+
+  useEffect(() => {
+    console.log("fetch user");
+    const fetchUserData = async () => {
+      try {
+        const response = await fetchMe();
+        setUser(response);
+        setIsFetching(false);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        setUser(null);
+        setIsFetching(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const isAllowed = isPermissioned(user, ["READ_QUESTION"]) && !isFetching;
+  useEffect(() => {
+    if (isFetching) return;
+
+    if (!isAllowed) {
+      setOpenUnauthorizeModal(true);
+    }
+  }, [isPermissioned, isFetching, router]);
+
   return (
     <>
       {question && (
         <div className="flex justify-center items-center min-h-screen ">
-          <div className="bg-white p-10 rounded-2xl shadow-2xl max-w-2xl w-full transform transition-all hover:scale-105 duration-300 ease-in-out">
-            <div className="text-lg font-semibold text-gray-800 mb-4">
-              <span className="underline">Question:</span>&nbsp;
-              {parse(question?.question)}
-            </div>
-
-            <p className="text-[15px] font-semibold text-gray-400 mb-4 italic">
-              Skill: {question?.skill?.skill_name}
-            </p>
-
-            <h2 className="font-semibold text-xl text-gray-700 mb-4">
-              Options:
-            </h2>
-            <ul className="list-inside mb-6 space-y-4">
-              {question?.options.map((option, index) => (
-                <li
-                  key={option.option_id}
-                  className={`py-2 px-4 rounded-lg transition-colors duration-300 ease-in-out ${
-                    option.is_correct
-                      ? "bg-green-100 text-green-600"
-                      : "bg-gray-100 text-gray-800"
-                  } hover:bg-indigo-200 cursor-pointer`}
-                >
-                  <div className="flex items-center">
-                    <span className="mr-2 font-medium">
-                      {numberToLetter(index)}.
-                    </span>
-                    <span className="flex items-center">
-                      {option.option_text}
-                      {option.is_correct ? (
-                        <FaCheck className="ml-2 text-green-600" />
-                      ) : (
-                        <div></div>
-                      )}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-            <div className="flex justify-between items-center mb-4 mt-6">
-              <div className="flex space-x-4">
-                <button
-                  className="text-2xl text-gray-600 hover:text-indigo-600 transition duration-200"
-                  onClick={() => router.push(`/questions`)}
-                >
-                  <FaArrowLeft />
-                </button>
+          <Modal
+            isOpen={openUnauthorizeModal}
+            onClose={() => router.push("/profile")}
+            onConfirmFetch={() => router.push("/profile")}
+            icon={faXmark}
+            title="Unauthorized Access"
+            message="You do not have permission to access this resource."
+            confirmText="Confirm"
+          />
+          {isAllowed && (
+            <div className="bg-white p-10 rounded-2xl shadow-2xl max-w-2xl w-full transform transition-all hover:scale-105 duration-300 ease-in-out">
+              <div className="text-lg font-semibold text-gray-800 mb-4">
+                <span className="underline">Question:</span>&nbsp;
+                {parse(question?.question)}
               </div>
 
-              <div className="flex space-x-4 ml-auto">
-                {/* ใช้ ml-auto เพื่อจัดตำแหน่งขวาสุด */}
-                <button
-                  onClick={toggleDisable}
-                  className="text-2xl text-gray-600 hover:text-indigo-600 transition duration-200"
-                >
-                  {Boolean(isDisabled) ? <FaEye /> : <FaEyeSlash />}
-                </button>
-                <button
-                  onClick={() => router.push(`/questions/${questionID}/edit`)}
-                  className="text-2xl text-gray-600 hover:text-indigo-600 transition duration-200"
-                >
-                  <FaEdit />
-                </button>
+              <p className="text-[15px] font-semibold text-gray-400 mb-4 italic">
+                Skill: {question?.skill?.skill_name}
+              </p>
+
+              <h2 className="font-semibold text-xl text-gray-700 mb-4">
+                Options:
+              </h2>
+              <ul className="list-inside mb-6 space-y-4">
+                {question?.options.map((option, index) => (
+                  <li
+                    key={option.option_id}
+                    className={`py-2 px-4 rounded-lg transition-colors duration-300 ease-in-out ${
+                      option.is_correct
+                        ? "bg-green-100 text-green-600"
+                        : "bg-gray-100 text-gray-800"
+                    } hover:bg-indigo-200 cursor-pointer`}
+                  >
+                    <div className="flex items-center">
+                      <span className="mr-2 font-medium">
+                        {numberToLetter(index)}.
+                      </span>
+                      <span className="flex items-center">
+                        {option.option_text}
+                        {option.is_correct ? (
+                          <FaCheck className="ml-2 text-green-600" />
+                        ) : (
+                          <div></div>
+                        )}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="flex justify-between items-center mb-4 mt-6">
+                <div className="flex space-x-4">
+                  <button
+                    className="text-2xl text-gray-600 hover:text-indigo-600 transition duration-200"
+                    onClick={() => router.push(`/questions`)}
+                  >
+                    <FaArrowLeft />
+                  </button>
+                </div>
+
+                <div className="flex space-x-4 ml-auto">
+                  {/* ใช้ ml-auto เพื่อจัดตำแหน่งขวาสุด */}
+                  <button
+                    onClick={toggleDisable}
+                    className="text-2xl text-gray-600 hover:text-indigo-600 transition duration-200"
+                  >
+                    {Boolean(isDisabled) ? <FaEye /> : <FaEyeSlash />}
+                  </button>
+                  <button
+                    onClick={() => router.push(`/questions/${questionID}/edit`)}
+                    className="text-2xl text-gray-600 hover:text-indigo-600 transition duration-200"
+                  >
+                    <FaEdit />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </>

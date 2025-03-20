@@ -1,4 +1,5 @@
 import axios from "axios";
+import { fetchWithAuth } from "./utils.query";
 
 const HOST_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -24,33 +25,27 @@ export const getAllQuestionQuery = async (params: {
     // สร้าง Query String จาก Object
     const queryString = new URLSearchParams(params as any).toString();
 
-    const response = await axios.get(
-      `${HOST_URL}/api/admin/question?${queryString}`
-    );
-    return response?.data;
+    // const response = await axios.get(
+    //   `${HOST_URL}/api/admin/question?${queryString}`
+    // );
+
+    const response = await fetchWithAuth(`/api/admin/question`, "GET", params);
+    return response;
   } catch (error) {
     console.error("Error fetching all questions:", error);
     return [];
   }
 };
 
-export const createQuestionQuery = async (body: any) => {
-  try {
-    const response = await axios.post(
-      `${HOST_URL}/api/admin/question/create`,
-      body
-    );
-    return response?.data;
-  } catch (error) {
-    console.log(error);
-    return;
-  }
-};
-
 export const enableDisableQuestionQuery = async (question_id: any) => {
   try {
-    const response = await axios.put(
-      `${HOST_URL}/api/admin/question/available/${question_id}`
+    // const response = await axios.put(
+    //   `${HOST_URL}/api/admin/question/available/${question_id}`
+    // );
+
+    const response = await fetchWithAuth(
+      `/api/admin/question/available/${question_id}`,
+      "PUT"
     );
     return response?.data;
   } catch (error) {
@@ -61,23 +56,53 @@ export const enableDisableQuestionQuery = async (question_id: any) => {
 
 export const getQuestionsByIDQuery = async (questionID: string) => {
   try {
-    const response = await axios.get(
-      `${HOST_URL}/api/admin/question/${questionID}`
+    // const response = await axios.get(
+    //   `${HOST_URL}/api/admin/question/${questionID}`
+    // );
+
+    const response = await fetchWithAuth(
+      `/api/admin/question/${questionID}`,
+      "GET"
     );
-    return response?.data;
+    return response;
   } catch (error) {
     console.log(error);
     return null;
   }
 };
 
-export const editQuestionQuery = async (body: any) => {
+export const createQuestionQuery = async (body: any) => {
   try {
-    const response = await axios.put(
-      `${HOST_URL}/api/admin/question/edit`,
+    // const response = await axios.post(
+    //   `${HOST_URL}/api/admin/question/create`,
+    //   body
+    // );
+
+    const response = await fetchWithAuth(
+      `/api/admin/question/create`,
+      "POST",
       body
     );
-    return response?.data;
+    return response;
+  } catch (error) {
+    console.log(error);
+    return;
+  }
+};
+
+export const editQuestionQuery = async (body: any) => {
+  try {
+    // const response = await axios.put(
+    //   `${HOST_URL}/api/admin/question/edit`,
+    //   body
+    // );
+
+    const response = await fetchWithAuth(
+      `/api/admin/question/edit`,
+      "PUT",
+      body
+    );
+    return response;
   } catch (error) {
     console.log(error);
     return;

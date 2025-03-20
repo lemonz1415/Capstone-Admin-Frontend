@@ -17,7 +17,7 @@ export default function SetPasswordCompletePage() {
         </p>
         <button
           className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg text-lg hover:bg-blue-700 transition duration-200"
-          onClick={() => router.push("/login")}
+          onClick={() => router.push("/auth/login")}
         >
           Go to Login
         </button>

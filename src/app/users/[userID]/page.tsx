@@ -7,11 +7,19 @@ import {
   faArrowLeft,
   faCheck,
   faTimes,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button, Chip, Tooltip, Switch } from "@heroui/react";
 import toast from "react-hot-toast";
 import { convertDateToENWithoutTime } from "@/util/util.function";
-import { getUserDetailQuery, disableEnableUserQuery } from "@/query/user.query";
+import {
+  getUserDetailQuery,
+  disableEnableUserQuery,
+  fetchMe,
+} from "@/query/user.query";
+import { useAuth } from "@/contexts/auth.context";
+import Modal from "@/components/modal";
+import { isPermissioned } from "@/util/auth";
 
 interface User {
   user_id: number;
@@ -59,6 +67,48 @@ export default function UserDetailPage() {
     fetchUser();
   }, [userID]);
 
+  //----------------
+  // AUTH
+  //----------------
+  const [userPerm, setUserPerm] = useState<any>(null);
+  const [isFetching, setIsFetching] = useState(true);
+  const [openUnauthorizeModal, setOpenUnauthorizeModal] = useState(false);
+
+  useEffect(() => {
+    console.log("fetch user");
+    const fetchUserData = async () => {
+      try {
+        const response = await fetchMe();
+        setUserPerm(response);
+        setIsFetching(false);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        setUserPerm(null);
+        setIsFetching(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const isAllowedReadUser =
+    isPermissioned(userPerm, ["READ_USER"]) && !isFetching;
+
+  const isAllowedUpdateUser =
+    isPermissioned(userPerm, ["UPDATE_USER"]) && !isFetching;
+
+  useEffect(() => {
+    if (isFetching) return;
+
+    if (!isAllowedReadUser) {
+      setOpenUnauthorizeModal(true);
+    }
+  }, [isPermissioned, isFetching, router]);
+
+  //----------------
+  // HANDLE
+  //----------------
+
   const handleDisableEnableUser = async () => {
     if (!userIDString) {
       toast.error("Invalid user ID");
@@ -93,127 +143,144 @@ export default function UserDetailPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen py-10 px-10 ml-[250px]">
-      {/* Back to User Management */}
-      <button
-        onClick={() => router.push("/users")}
-        className="text-blue-600 hover:text-blue-800 mb-6 flex items-center"
-      >
-        <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-        Back to all users
-      </button>
+      <Modal
+        isOpen={openUnauthorizeModal}
+        onClose={() => router.push("/profile")}
+        onConfirmFetch={() => router.push("/profile")}
+        icon={faXmark}
+        title="Unauthorized Access"
+        message="You do not have permission to access this resource."
+        confirmText="Confirm"
+      />
+      {isAllowedReadUser && (
+        <>
+          {/* Back to User Management*/}
+          <button
+            onClick={() => router.push("/users")}
+            className="text-blue-600 hover:text-blue-800 mb-6 flex items-center"
+          >
+            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+            Back to all users
+          </button>
 
-      {/* User Header */}
-      <div className="flex items-center gap-x-6 my-[30px] mx-4">
-        <FontAwesomeIcon
-          icon={faUserCircle}
-          size="3x"
-          className="text-white rounded-xl p-2"
-          style={{
-            backgroundColor:
-              //     !user.is_active
-              //       ? "#D3D3D3"
-              //       : user.role_id === "ADMIN"
-              //       ? "#4CAF50"
-              //       : user.role_id === "USER"
-              //       ? "#2196F3"
-              //       : "#FFD700",
-              // }}
-              !user.is_active
-                ? "#D3D3D3"
-                : "#2196F3"
-          }}
-        />
-        <div>
-          <h1 className="text-lg font-semibold text-gray-800">{`${user.firstname} ${user.lastname}`}</h1>
-          <p className="text-sm text-gray-500">{user.email}</p>
-        </div>
-        {/* Toggle Switch */}
-        <Switch
-          isSelected={user.is_active}
-          onChange={handleDisableEnableUser}
-          color="success"
-          size="lg"
-          className="ml-auto"
-        >
-          {user.is_active ? "Active" : "Inactive"}
-        </Switch>
-      </div>
-
-      {/* User Information */}
-      <div className="bg-white rounded-lg shadow-md px-8 py-6 mb-[30px]">
-        <div className="flex justify-between items-center mb-[20px] mt-[-10px] border-b-1 border-grey-500">
-          <h2 className="text-lg font-semibold text-gray-800">
-            USER INFORMATION
-          </h2>
-          <Button variant="flat" color="primary" onPress={handleEdit}>
-            Edit Info
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-3 gap-x-12 gap-y-6">
-          <div>
-            <p className="text-sm font-medium text-gray-600">First Name:</p>
-            <p>{user.firstname}</p>
+          {/* User Header */}
+          <div className="flex items-center gap-x-6 my-[30px] mx-4">
+            <FontAwesomeIcon
+              icon={faUserCircle}
+              size="3x"
+              className="text-white rounded-xl p-2"
+              style={{
+                backgroundColor:
+                  //     !user.is_active
+                  //       ? "#D3D3D3"
+                  //       : user.role_id === "ADMIN"
+                  //       ? "#4CAF50"
+                  //       : user.role_id === "USER"
+                  //       ? "#2196F3"
+                  //       : "#FFD700",
+                  // }}
+                  !user.is_active ? "#D3D3D3" : "#2196F3",
+              }}
+            />
+            <div>
+              <h1 className="text-lg font-semibold text-gray-800">{`${user.firstname} ${user.lastname}`}</h1>
+              <p className="text-sm text-gray-500">{user.email}</p>
+            </div>
+            {/* Toggle Switch */}
+            {isAllowedUpdateUser && (
+              <Switch
+                isSelected={user.is_active}
+                onChange={handleDisableEnableUser}
+                color="success"
+                size="lg"
+                className="ml-auto"
+              >
+                {user.is_active ? "Active" : "Inactive"}
+              </Switch>
+            )}
           </div>
 
-          <div>
-            <p className="text-sm font-medium text-gray-600">Last Name:</p>
-            <p>{user.lastname}</p>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium text-gray-600">Date of Birth:</p>
-            <p>{user.DOB ? convertDateToENWithoutTime(user.DOB) : "N/A"}</p>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium text-gray-600">Email:</p>
-            <p>{user.email}</p>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium text-gray-600">
-              Verification Status:
-            </p>
-            <Chip
-              color={user.is_verify ? "primary" : "danger"}
-              size="sm"
-              className={
-                user.is_verify
-                  ? "bg-blue-100 text-blue-600"
-                  : "bg-red-100 text-red-600"
-              }
-            >
-              {user.is_verify ? "Verified" : "Unverified"}
-            </Chip>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium text-gray-600">Active Status:</p>
-            <Chip
-              color={user.is_active ? "success" : "danger"}
-              size="sm"
-              className={
-                user.is_active
-                  ? "bg-green-100 text-green-600"
-                  : "bg-red-100 text-red-600"
-              }
-            >
-              {user.is_active ? (
-                <>
-                  <FontAwesomeIcon icon={faCheck} className="mr-1" />
-                  Active
-                </>
-              ) : (
-                <>
-                  <FontAwesomeIcon icon={faTimes} className="mr-1" />
-                  Inactive
-                </>
+          {/* User Information */}
+          <div className="bg-white rounded-lg shadow-md px-8 py-6 mb-[30px]">
+            <div className="flex justify-between items-center mb-[20px] mt-[-10px] border-b-1 border-grey-500">
+              <h2 className="text-lg font-semibold text-gray-800">
+                USER INFORMATION
+              </h2>
+              {isAllowedUpdateUser && (
+                <Button variant="flat" color="primary" onPress={handleEdit}>
+                  Edit Info
+                </Button>
               )}
-            </Chip>
-          </div>
+            </div>
 
-          {/* <div>
+            <div className="grid grid-cols-3 gap-x-12 gap-y-6">
+              <div>
+                <p className="text-sm font-medium text-gray-600">First Name:</p>
+                <p>{user.firstname}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-600">Last Name:</p>
+                <p>{user.lastname}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Date of Birth:
+                </p>
+                <p>{user.DOB ? convertDateToENWithoutTime(user.DOB) : "N/A"}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-600">Email:</p>
+                <p>{user.email}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Verification Status:
+                </p>
+                <Chip
+                  color={user.is_verify ? "primary" : "danger"}
+                  size="sm"
+                  className={
+                    user.is_verify
+                      ? "bg-blue-100 text-blue-600"
+                      : "bg-red-100 text-red-600"
+                  }
+                >
+                  {user.is_verify ? "Verified" : "Unverified"}
+                </Chip>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Active Status:
+                </p>
+                <Chip
+                  color={user.is_active ? "success" : "danger"}
+                  size="sm"
+                  className={
+                    user.is_active
+                      ? "bg-green-100 text-green-600"
+                      : "bg-red-100 text-red-600"
+                  }
+                >
+                  {user.is_active ? (
+                    <>
+                      <FontAwesomeIcon icon={faCheck} className="mr-1" />
+                      Active
+                    </>
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faTimes} className="mr-1" />
+                      Inactive
+                    </>
+                  )}
+                </Chip>
+              </div>
+
+              {/* <div>
             <p className="text-sm font-medium text-gray-600">Created At:</p>
             <p>
             {user.create_at ? convertDateToEN(user.create_at) : "N/A"}
@@ -226,25 +293,29 @@ export default function UserDetailPage() {
             {user.update_at ? convertDateToEN(user.update_at) : "N/A"}
             </p>
           </div> */}
-        </div>
-      </div>
-
-      {/* Role Section */}
-      <div className="bg-white rounded-lg shadow-md px-8 py-6 mb-[30px]">
-        <div className="flex justify-between items-center mb-[20px] mt-[-10px] border-b-1 border-grey-500">
-          <h2 className="text-lg font-semibold text-gray-800">USER PERMISSION</h2>
-          <Button variant="flat" color="primary" onPress={handleEdit}>
-            Edit Info
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-3 gap-x-12 gap-y-6">
-          <div>
-            <p className="text-sm font-medium text-gray-600">Permission:</p>
-            <p>-</p>
+            </div>
           </div>
-        </div>
-      </div>
+
+          {/* Role Section */}
+          <div className="bg-white rounded-lg shadow-md px-8 py-6 mb-[30px]">
+            <div className="flex justify-between items-center mb-[20px] mt-[-10px] border-b-1 border-grey-500">
+              <h2 className="text-lg font-semibold text-gray-800">
+                USER PERMISSION
+              </h2>
+              <Button variant="flat" color="primary" onPress={handleEdit}>
+                Edit Info
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-x-12 gap-y-6">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Permission:</p>
+                <p>-</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

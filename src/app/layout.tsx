@@ -1,14 +1,15 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Suspense } from "react";
-import { Providers } from "./providers";
 import { Metadata } from "next";
 import { config } from "@fortawesome/fontawesome-svg-core";
 
 import Navbar from "@/components/navbar";
 import "../styles/globals.css";
 import "@fortawesome/fontawesome-svg-core/styles.css";
+import { AuthProvider } from "@/contexts/auth.context";
+import classNames from "classnames";
 config.autoAddCss = false;
 
 const metadata: Metadata = {
@@ -20,25 +21,34 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const router = useRouter();
+
   const pathname = usePathname();
 
   const hideNavbarPages = [
     "/set-password",
     "/set-password/complete",
     "/verify-email",
+    "/auth/login",
   ];
 
   return (
     <html lang="en">
       <body>
-        <Providers>
+        <AuthProvider>
           <div className="min-h-screen flex">
             <Suspense fallback={<div>Loading...</div>}>
               {!hideNavbarPages.includes(pathname) && <Navbar />}
             </Suspense>
-            <main className="flex-grow mt-[60px]">{children}</main>
+            <main
+              className={classNames("flex-grow", {
+                "mt-[60px]": !hideNavbarPages.includes(pathname),
+              })}
+            >
+              {children}
+            </main>
           </div>
-        </Providers>
+        </AuthProvider>
       </body>
     </html>
   );
