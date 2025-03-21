@@ -32,14 +32,12 @@ interface AuthContextType {
   logout: () => void;
   user: User | null;
   setUser: (user: User | null) => void;
-  // isPermissioned: (permission: string | string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
-  const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isFetching, setIsFetching] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
@@ -65,7 +63,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // VALIDATE TOKEN
   useEffect(() => {
     const checkTokens = async () => {
-      console.log("check main token");
       const accessToken = localStorage.getItem("accessToken");
       const refreshToken = localStorage.getItem("refreshToken");
       if (!accessToken || !refreshToken) {
@@ -75,7 +72,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       const isTokenValid = await checkTokenValidity();
-      console.log(`Is token valid: ${isTokenValid}`);
 
       if (!isTokenValid) {
         try {
@@ -119,18 +115,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-// ฟังก์ชันตรวจสอบความถูกต้องของ Token
-// const isTokenValid = (token: string): boolean => {
-//   try {
-//     // ตัด "Bearer " ออกจาก token ถ้ามี
-//     const tokenValue = token.startsWith("Bearer ") ? token.slice(7) : token;
-
-//     const payload = JSON.parse(atob(tokenValue.split(".")[1]));
-//     const currentTime = Math.floor(Date.now() / 1000);
-//     return payload.exp > currentTime;
-//   } catch (error) {
-//     console.error("Invalid token:", error);
-//     return false;
-//   }
-// };

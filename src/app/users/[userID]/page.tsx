@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/contexts/auth.context";
 import Modal from "@/components/modal";
 import { isPermissioned } from "@/util/auth";
+import { roles } from "@/util/role";
 
 interface User {
   user_id: number;
@@ -70,7 +71,7 @@ export default function UserDetailPage() {
   //----------------
   // AUTH
   //----------------
-  const [userPerm, setUserPerm] = useState<any>(null);
+  const [userWithRole, setUserWithRole] = useState<any>(null);
   const [isFetching, setIsFetching] = useState(true);
   const [openUnauthorizeModal, setOpenUnauthorizeModal] = useState(false);
 
@@ -79,11 +80,11 @@ export default function UserDetailPage() {
     const fetchUserData = async () => {
       try {
         const response = await fetchMe();
-        setUserPerm(response);
+        setUserWithRole(response);
         setIsFetching(false);
       } catch (error) {
         console.error("Error fetching user:", error);
-        setUserPerm(null);
+        setUserWithRole(null);
         setIsFetching(false);
       }
     };
@@ -91,16 +92,12 @@ export default function UserDetailPage() {
     fetchUserData();
   }, []);
 
-  const isAllowedReadUser =
-    isPermissioned(userPerm, ["READ_USER"]) && !isFetching;
-
-  const isAllowedUpdateUser =
-    isPermissioned(userPerm, ["UPDATE_USER"]) && !isFetching;
+  const isAllowed = isPermissioned(userWithRole, [roles.ADMIN]) && !isFetching;
 
   useEffect(() => {
     if (isFetching) return;
 
-    if (!isAllowedReadUser) {
+    if (!isAllowed) {
       setOpenUnauthorizeModal(true);
     }
   }, [isPermissioned, isFetching, router]);
@@ -156,7 +153,7 @@ export default function UserDetailPage() {
         message="You do not have permission to access this resource."
         confirmText="Confirm"
       />
-      {isAllowedReadUser && (
+      {isAllowed && (
         <>
           {/* Back to User Management*/}
           <button
@@ -191,17 +188,15 @@ export default function UserDetailPage() {
               <p className="text-sm text-gray-500">{user.email}</p>
             </div>
             {/* Toggle Switch */}
-            {isAllowedUpdateUser && (
-              <Switch
-                isSelected={user.is_active}
-                onChange={handleDisableEnableUser}
-                color="success"
-                size="lg"
-                className="ml-auto"
-              >
-                {user.is_active ? "Active" : "Inactive"}
-              </Switch>
-            )}
+            <Switch
+              isSelected={user.is_active}
+              onChange={handleDisableEnableUser}
+              color="success"
+              size="lg"
+              className="ml-auto"
+            >
+              {user.is_active ? "Active" : "Inactive"}
+            </Switch>
           </div>
 
           {/* User Information */}
@@ -210,11 +205,9 @@ export default function UserDetailPage() {
               <h2 className="text-lg font-semibold text-gray-800">
                 USER INFORMATION
               </h2>
-              {isAllowedUpdateUser && (
-                <Button variant="flat" color="primary" onPress={handleEdit}>
-                  Edit Info
-                </Button>
-              )}
+              <Button variant="flat" color="primary" onPress={handleEdit}>
+                Edit Info
+              </Button>
             </div>
 
             <div className="grid grid-cols-3 gap-x-12 gap-y-6">
@@ -283,25 +276,11 @@ export default function UserDetailPage() {
                   )}
                 </Chip>
               </div>
-
-              {/* <div>
-            <p className="text-sm font-medium text-gray-600">Created At:</p>
-            <p>
-            {user.create_at ? convertDateToEN(user.create_at) : "N/A"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium text-gray-600">Updated At:</p>
-            <p>
-            {user.update_at ? convertDateToEN(user.update_at) : "N/A"}
-            </p>
-          </div> */}
             </div>
           </div>
 
           {/* User Permission */}
-          <div className="bg-white rounded-lg shadow-md px-8 py-6 mb-[30px]">
+          {/* <div className="bg-white rounded-lg shadow-md px-8 py-6 mb-[30px]">
             <div className="flex justify-between items-center mb-[20px] mt-[-10px] border-b-1 border-grey-500">
               <h2 className="text-lg font-semibold text-gray-800">
                 USER PERMISSION
@@ -320,7 +299,7 @@ export default function UserDetailPage() {
                 <p className="text-sm font-medium text-gray-600">Permission:</p>
               </div>
             </div>
-          </div>
+          </div> */}
         </>
       )}
     </div>

@@ -34,13 +34,17 @@ import {
   DropdownMenu,
   DropdownItem,
   DateRangePicker,
+  Select,
+  SelectItem,
 } from "@heroui/react";
-import { convertDateToEN } from "@/util/util.function";
+import { convertDateToEN, convertRoleToReadable } from "@/util/util.function";
 import { fetchMe, getAllUsersQuery } from "@/query/user.query";
 import { parseDate } from "@internationalized/date";
 import Modal from "@/components/modal";
 import { useAuth } from "@/contexts/auth.context";
 import { isPermissioned } from "@/util/auth";
+import { roles } from "@/util/role";
+import { getAllRoleQuery } from "@/query/role.query";
 
 // กำหนด interface สำหรับข้อมูล User
 interface User {
@@ -50,8 +54,20 @@ interface User {
   email: string;
   update_at: string;
   is_verify: boolean;
-  // role_id: "ADMIN" | "USER";
   is_active: boolean;
+  role_id: string;
+  role: string;
+}
+
+interface DataFilterType {
+  search_filter: string;
+  is_active: string;
+  is_verify: string;
+  start_date: string;
+  end_date: string;
+  role_id: string | string[];
+  page: number;
+  per_page: number;
 }
 
 export default function UserManagementPage() {
@@ -61,13 +77,13 @@ export default function UserManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   // const [selectedRole, setSelectedRole] = useState<"ALL" | "ADMIN" | "USER">("ALL");
   const [currentPage, setCurrentPage] = useState(1);
-  const [dataFilter, setDataFilter] = useState({
+  const [dataFilter, setDataFilter] = useState<DataFilterType>({
     search_filter: "",
-    // role_id: "",
     is_active: "",
     is_verify: "",
     start_date: "",
     end_date: "",
+    role_id: "",
     page: 1,
     per_page: 10,
   });
@@ -105,6 +121,37 @@ export default function UserManagementPage() {
     fetchUsers();
   }, [dataFilter]);
 
+  //----------------
+  // DATA FILTER
+  //----------------
+  const verificationStatuses = [
+    { key: "true", label: "Verified" },
+    { key: "false", label: "Unverified" },
+  ];
+
+  const activeStatuses = [
+    { key: "true", label: "Active" },
+    { key: "false", label: "Inactive" },
+  ];
+
+  const [filterRoles, setFilterRoles] = useState([]);
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const roles = await getAllRoleQuery();
+        const formatRole = roles.map((r: any) => ({
+          key: r.role_id,
+          label: convertRoleToReadable(r.role),
+        }));
+        setFilterRoles(formatRole);
+      } catch (error) {
+        console.error("Error fetching roles:", error);
+      }
+    };
+
+    fetchRoles();
+  }, []);
+
   const handleCreateUser = () => {
     router.push("/users/create");
   };
@@ -129,18 +176,30 @@ export default function UserManagementPage() {
     }));
   };
 
-  const onVerificationStatusChange = (keys: any) => {
+  const onRoleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectRole = e.target.value ? e.target.value.split(",") : "";
     setDataFilter((prev) => ({
       ...prev,
-      is_verify: keys.has("true") ? "true" : keys.has("false") ? "false" : "",
+      role_id: selectRole,
+    }));
+  };
+
+  const onVerificationStatusChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const selectedStatus = e.target.value;
+    setDataFilter((prev) => ({
+      ...prev,
+      is_verify: selectedStatus.length !== 0 ? selectedStatus : "",
       page: 1,
     }));
   };
 
-  const onActiveStatusChange = (keys: any) => {
+  const onActiveStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedStatus = e.target.value;
     setDataFilter((prev) => ({
       ...prev,
-      is_active: keys.has("true") ? "true" : keys.has("false") ? "false" : "",
+      is_active: selectedStatus.length !== 0 ? selectedStatus : "",
       page: 1,
     }));
   };
@@ -170,17 +229,17 @@ export default function UserManagementPage() {
       end_date: "",
       is_verify: "",
       is_active: "",
+      role_id: "",
       page: 1,
       per_page: 10,
       search_filter: "",
-      // role_id: "",
     });
     setSearchTerm("");
   };
 
   const columns = [
     { key: "name", label: "NAME" },
-    // { key: "role_id", label: "ROLE" },
+    { key: "role", label: "ROLE" },
     { key: "is_verify", label: "VERIFIED" },
     { key: "status", label: "STATUS" },
     { key: "update_at", label: "UPDATE AT" },
@@ -196,6 +255,7 @@ export default function UserManagementPage() {
     is_verify: user.is_verify ? "Yes" : "No",
     status: user.is_active,
     update_at: user.update_at ? convertDateToEN(user.update_at) : "N/A",
+    role: convertRoleToReadable(user.role),
   }));
 
   const renderCell = (item: any, columnKey: any) => {
@@ -308,7 +368,8 @@ export default function UserManagementPage() {
     fetchUserData();
   }, []);
 
-  const isAllowed = isPermissioned(user, ["READ_USER"]) && !isFetching;
+  const isAllowed = isPermissioned(user, [roles.ADMIN]) && !isFetching;
+
   useEffect(() => {
     if (isFetching) return;
 
@@ -356,37 +417,85 @@ export default function UserManagementPage() {
 
           {/* Filters Section*/}
           <div className="bg-white rounded-lg shadow-2xl p-[30px] flex flex-wrap items-center gap-4">
-            {/* Search Bar */}
-            <div className="w-[350px] z-0">
-              <Input
-                label="Search"
-                placeholder="Search for what you're looking for"
-                type="search"
-                variant="underlined"
-                value={searchTerm}
-                onValueChange={onDebounceSearch}
-              />
-            </div>
-            {/* Date Range Picker */}
-            <div className="mt-0">
-              <DateRangePicker
-                className="max-w-xs"
-                label="Update date"
-                variant="flat"
-                value={{
-                  start: dataFilter.start_date
-                    ? parseDate(dataFilter.start_date)
-                    : null,
-                  end: dataFilter.end_date
-                    ? parseDate(dataFilter.end_date)
-                    : null,
-                }}
-                onChange={(date) => onDateChange(date)}
-              />
+            <div className="flex">
+              <div className="w-[250px] z-0">
+                <Input
+                  label="Search"
+                  placeholder="Search for what you're looking for"
+                  type="search"
+                  variant="underlined"
+                  value={searchTerm}
+                  onValueChange={onDebounceSearch}
+                />
+              </div>
+              <div className="ml-6">
+                <DateRangePicker
+                  className="max-w-xs"
+                  label="Update date"
+                  size="md"
+                  variant="flat"
+                  value={{
+                    start: dataFilter.start_date
+                      ? parseDate(dataFilter.start_date)
+                      : null,
+                    end: dataFilter.end_date
+                      ? parseDate(dataFilter.end_date)
+                      : null,
+                  }}
+                  onChange={(date) => onDateChange(date)}
+                />
+              </div>
             </div>
 
-            {/* Dropdown Filters */}
-            <div className="z-0">
+            {/* Filter */}
+            <div className="flex">
+              <div className="z-0">
+                <Select
+                  className="w-[200px]"
+                  placeholder="Select a role"
+                  label="Role"
+                  size="sm"
+                  selectionMode="multiple"
+                  onChange={onRoleFilterChange}
+                  selectedKeys={""}
+                >
+                  {filterRoles.map((role: any) => (
+                    <SelectItem key={role.key}>{role.label}</SelectItem>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="z-0 ml-2">
+                <Select
+                  className="w-[150px]"
+                  label="Verification Status"
+                  placeholder="Select a status"
+                  size="sm"
+                  onChange={onVerificationStatusChange}
+                >
+                  {verificationStatuses.map((vs: any) => (
+                    <SelectItem key={vs.key}>{vs.label}</SelectItem>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="z-0 ml-2">
+                <Select
+                  className="w-[150px]"
+                  label="Active Status"
+                  placeholder="Select a status"
+                  size="sm"
+                  onChange={onActiveStatusChange}
+                >
+                  {activeStatuses.map((as: any) => (
+                    <SelectItem key={as.key}>{as.label}</SelectItem>
+                  ))}
+                </Select>
+              </div>
+            </div>
+
+            {/* Verification status Filter */}
+            {/* <div className="z-0">
               <Dropdown>
                 <DropdownTrigger>
                   <Button
@@ -407,8 +516,10 @@ export default function UserManagementPage() {
                   <DropdownItem key="false">Unverified</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
-            </div>
-            <div className="z-0">
+            </div> */}
+
+            {/* Active status Filter */}
+            {/* <div className="z-0">
               <Dropdown>
                 <DropdownTrigger>
                   <Button variant="flat" color="success">
@@ -425,14 +536,14 @@ export default function UserManagementPage() {
                   <DropdownItem key="false">Inactive</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
-            </div>
+            </div> */}
 
             {/* Reset Filters */}
-            <div className="ml-auto">
-              <Button color="danger" variant="flat" onPress={resetFilters}>
-                Reset Filters
+            {/* <div className="ml-auto">
+              <Button color="warning" variant="flat" onPress={resetFilters}>
+                Reset
               </Button>
-            </div>
+            </div> */}
           </div>
 
           <div className="flex flex-col mt-[30px]">

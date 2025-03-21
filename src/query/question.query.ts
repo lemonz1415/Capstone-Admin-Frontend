@@ -25,12 +25,18 @@ export const getAllQuestionQuery = async (params: {
     // สร้าง Query String จาก Object
     const queryString = new URLSearchParams(params as any).toString();
 
-    // const response = await axios.get(
-    //   `${HOST_URL}/api/admin/question?${queryString}`
-    // );
+    const accessToken = localStorage.getItem("accessToken");
+    const response = await axios({
+      url: `${HOST_URL}/api/admin/question?${queryString}`,
+      method: "GET",
+      headers: {
+        Authorization: accessToken,
+        "Content-Type": "application/json",
+      },
+    });
 
-    const response = await fetchWithAuth(`/api/admin/question`, "GET", params);
-    return response;
+    // const response = await fetchWithAuth(`/api/admin/question`, "GET", params);
+    return response.data;
   } catch (error) {
     console.error("Error fetching all questions:", error);
     return [];

@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/auth.context";
 import { useEffect, useState } from "react";
 import { fetchMe } from "@/query/user.query";
 import { isPermissioned } from "@/util/auth";
+import { roles } from "@/util/role";
 
 export default function Navbar() {
   const router = useRouter();
@@ -42,8 +43,8 @@ export default function Navbar() {
   }, []);
 
   const isCanManageQuestion =
-    isPermissioned(user, ["READ_QUESTION"]) && !isFetching;
-  const isCanManageUser = isPermissioned(user, ["READ_USER"]) && !isFetching;
+    isPermissioned(user, [roles.ADMIN, roles.QUESTION_CREATOR]) && !isFetching;
+  const isCanManageUser = isPermissioned(user, [roles.ADMIN]) && !isFetching;
 
   const MENU = [
     {

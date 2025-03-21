@@ -9,13 +9,8 @@ const HOST_URL = process.env.NEXT_PUBLIC_API_URL;
 //---------------
 
 export const loginQuery = async (body: { email: string; password: string }) => {
-  try {
-    const response = await axios.post(`${HOST_URL}/api/admin/auth/login`, body);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching login:", error);
-    throw error;
-  }
+  const response = await axios.post(`${HOST_URL}/api/admin/auth/login`, body);
+  return response.data;
 };
 
 //---------------

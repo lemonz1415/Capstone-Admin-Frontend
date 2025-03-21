@@ -15,12 +15,15 @@ import { every } from "lodash";
 import { useAuth } from "@/contexts/auth.context";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { isPermissioned } from "@/util/auth";
+import { roles } from "@/util/role";
+import { Radio, RadioGroup } from "@heroui/react";
+import { getAllRoleQuery } from "@/query/role.query";
 
 interface insertDataType {
   firstname: string;
   lastname: string;
   email: string;
-  dob: string | null;
+  role_id: string | null;
 }
 
 export default function UserForm() {
@@ -38,7 +41,7 @@ export default function UserForm() {
     firstname: "",
     lastname: "",
     email: "",
-    dob: null,
+    role_id: null,
   });
 
   const [errors, setErrors] = useState({
@@ -47,6 +50,8 @@ export default function UserForm() {
     email: "",
     dob: "",
   });
+
+  const [role, setRole] = useState([]);
 
   //----------------
   // AUTH
@@ -72,8 +77,7 @@ export default function UserForm() {
     fetchUserData();
   }, []);
 
-  const isAllowed =
-    isPermissioned(user, ["UPDATE_USER", "CREATE_USER"]) && !isFetching;
+  const isAllowed = isPermissioned(user, [roles.ADMIN]) && !isFetching;
 
   useEffect(() => {
     if (isFetching) return;
@@ -100,13 +104,14 @@ export default function UserForm() {
     if (user_id) {
       const fetchUserDetail = async () => {
         try {
+          setLoading(true);
           const user = await getUserDetailQuery(String(user_id));
           if (user) {
             setInsertData({
               firstname: user.firstname || "",
               lastname: user.lastname || "",
               email: user.email || "",
-              dob: formatDate(new Date(user.DOB)) || "",
+              role_id: user.role_id || "",
             });
           }
         } catch (error) {
@@ -123,6 +128,33 @@ export default function UserForm() {
       setLoading(false);
     }
   }, [user_id]);
+
+  useEffect(() => {
+    const fetchRoleSelection = async () => {
+      try {
+        const role = await getAllRoleQuery();
+        const fileredRole = role.filter((r: any) => r.role !== "TESTER");
+        const formatRole = fileredRole.map((r: any) => {
+          if (r.role === "ADMIN") {
+            return { ...r, name: "Admin", desc: "Manage overall system." };
+          }
+          if (r.role === "QUESTION_CREATOR") {
+            return {
+              ...r,
+              name: "Question Creator",
+              desc: "Manage question system.",
+            };
+          }
+          return r;
+        });
+        setRole(formatRole);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchRoleSelection();
+  }, []);
 
   //----------------
   // FUNCTIONS
@@ -147,6 +179,14 @@ export default function UserForm() {
     setInsertData((prev) => ({
       ...prev,
       dob: date,
+    }));
+  };
+
+  const onSelectRole = (role_id: any) => {
+    setIsChange(true);
+    setInsertData((prev) => ({
+      ...prev,
+      role_id: role_id,
     }));
   };
 
@@ -189,15 +229,9 @@ export default function UserForm() {
       }
     }
 
-    if (!insertData.dob) {
-      newErrors.dob = "Date of birth is required.";
+    if (!insertData.role_id) {
+      newErrors.dob = "Role is required.";
       isValid = false;
-    } else {
-      const dobDate = new Date(insertData.dob);
-      if (dobDate > new Date()) {
-        newErrors.dob = "Date of birth cannot be in the future.";
-        isValid = false;
-      }
     }
 
     setErrors(newErrors);
@@ -241,7 +275,6 @@ export default function UserForm() {
       router.push(`/users`);
     }
   };
-
   //----------------
   // RENDER
   //----------------
@@ -352,21 +385,30 @@ export default function UserForm() {
               )}
             </div>
 
-            {/* Birthdate */}
+            {/* Role */}
             <div className="w-[400px]">
               <label
                 htmlFor="birthdate"
                 className="block text-sm font-medium text-gray-600"
               >
-                Date of Birth <span className="text-red-3">*</span>
+                Role <span className="text-red-3">*</span>
               </label>
               <div className="pt-[10px]">
-                <input
-                  type="date"
-                  className="border border-black bg-white text-black rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  onChange={onSetDOB}
-                  value={String(insertData.dob)}
-                />
+                <RadioGroup
+                  color="success"
+                  onValueChange={onSelectRole}
+                  value={String(insertData.role_id)}
+                >
+                  {role?.map((r: any) => (
+                    <Radio
+                      key={r.role_id}
+                      value={String(r.role_id)}
+                      description={r.desc}
+                    >
+                      {r.name}
+                    </Radio>
+                  ))}
+                </RadioGroup>
                 {errors.dob && (
                   <p className="text-red-500 text-sm">{errors.dob}</p>
                 )}

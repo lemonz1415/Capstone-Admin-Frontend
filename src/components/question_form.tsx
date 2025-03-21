@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/auth.context";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { fetchMe } from "@/query/user.query";
 import { isPermissioned } from "@/util/auth";
+import { roles } from "@/util/role";
 
 interface QuestionFormProps {
   mode: "create" | "update";
@@ -31,7 +32,6 @@ interface QuestionOption {
 }
 interface NewQuestionData {
   skill_id: number | null;
-  user_id: number | null;
   image_id: number | null;
   question_text: string;
   options: QuestionOption[];
@@ -39,6 +39,7 @@ interface NewQuestionData {
 
 const MAX_QUESTION_LENGTH = 300; // กำหนด max length ของ question
 const MAX_OPTION_LENGTH = 300; // กำหนด max length ของ option
+
 export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
   const router = useRouter();
 
@@ -324,7 +325,6 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     const data: NewQuestionData = {
       skill_id: skillId,
       image_id: null,
-      user_id: null,
       question_text: questionText,
       options: options,
     };
@@ -356,7 +356,6 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
           question_id: parseInt(questionID!),
           skill_id: skillId,
           image_id: null,
-          user_id: null,
           question_text: questionText,
           options: options.map((opt) => ({
             option_text: opt.option_text,
@@ -415,11 +414,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
   }, []);
 
   const isAllowed =
-    isPermissioned(user, [
-      "CREATE_QUESTION",
-      "UPDATE_QUESTION",
-      "READ_QUESTION",
-    ]) && !isFetching;
+    isPermissioned(user, [roles.ADMIN, roles.QUESTION_CREATOR]) && !isFetching;
   useEffect(() => {
     if (isFetching) return;
 

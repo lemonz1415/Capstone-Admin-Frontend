@@ -29,6 +29,7 @@ import Modal from "@/components/modal";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { isPermissioned } from "@/util/auth";
 import { fetchMe } from "@/query/user.query";
+import { roles } from "@/util/role";
 
 export default function ManageQuestion() {
   const router = useRouter();
@@ -98,7 +99,7 @@ export default function ManageQuestion() {
       label: "SKILL",
     },
     {
-      key: "create_by",
+      key: "created_by",
       label: "CREATED BY",
     },
     {
@@ -195,7 +196,9 @@ export default function ManageQuestion() {
     fetchUserData();
   }, []);
 
-  const isAllowed = isPermissioned(user, "READ_QUESTION") && !isFetching;
+  const isAllowed =
+    isPermissioned(user, [roles.ADMIN, roles.QUESTION_CREATOR]) && !isFetching;
+
   useEffect(() => {
     if (isFetching) return;
 

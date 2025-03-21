@@ -49,7 +49,7 @@ export const createUserQuery = async (body: {
   firstname: string;
   lastname: string;
   email: string;
-  dob: string | null;
+  role_id: string | null;
 }) => {
   try {
     // const response = await axios.post(
@@ -81,7 +81,7 @@ export const editUserQuery = async (
     firstname: string;
     lastname: string;
     email: string;
-    dob: string | null;
+    role_id: string | null;
   }
 ) => {
   try {

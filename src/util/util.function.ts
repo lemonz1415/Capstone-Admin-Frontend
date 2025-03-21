@@ -36,3 +36,14 @@ export function convertDateToENWithoutTime(date: Date | string): string {
 
   return new Intl.DateTimeFormat("en-US", options).format(date);
 }
+
+export const convertRoleToReadable = (role: string) => {
+  switch (role) {
+    case "ADMIN":
+      return "Admin";
+    case "QUESTION_CREATOR":
+      return "Question Creator";
+    case "TESTER":
+      return "Tester";
+  }
+};
