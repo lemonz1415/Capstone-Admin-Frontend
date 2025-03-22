@@ -39,14 +39,14 @@ export default function RootLayout({
           <div className="min-h-screen flex">
             <Suspense fallback={<div>Loading...</div>}>
               {!hideNavbarPages.includes(pathname) && <Navbar />}
+              <main
+                className={classNames("flex-grow", {
+                  "mt-[60px]": !hideNavbarPages.includes(pathname),
+                })}
+              >
+                {children}
+              </main>
             </Suspense>
-            <main
-              className={classNames("flex-grow", {
-                "mt-[60px]": !hideNavbarPages.includes(pathname),
-              })}
-            >
-              {children}
-            </main>
           </div>
         </AuthProvider>
       </body>

@@ -22,7 +22,7 @@ import {
   faClipboardList,
   faUsers,
   faKey,
-  faCheckSquare
+  faCheckSquare,
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function ManagePermissionsPage() {
@@ -34,7 +34,7 @@ export default function ManagePermissionsPage() {
   const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
   const [isSelectAll, setIsSelectAll] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [allPermissionIds, setAllPermissionIds] = useState<number[]>([]); // แต่ state นี้จะเก็บแค่ permission 
+  const [allPermissionIds, setAllPermissionIds] = useState<number[]>([]); // แต่ state นี้จะเก็บแค่ permission
   // ที่เกี่ยวข้องกับผู้ใช้ใน section ของ admin ทำให้มีแค่ 11 permission เท่านั้น
 
   const userIDString = userID && typeof userID === "string" ? userID : null;
@@ -85,36 +85,38 @@ export default function ManagePermissionsPage() {
     },
   ];
 
-    // Fetch Permissions ทั้งหมดเมื่อ Component ถูก mount
-    useEffect(() => {
-        const fetchPermissions = async () => {
-          setIsLoading(true);
-          try {
-            const permissionsData = await getAllPermissionsQuery();
-            setPermissions(permissionsData);
+  // Fetch Permissions ทั้งหมดเมื่อ Component ถูก mount
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      setIsLoading(true);
+      try {
+        const permissionsData = await getAllPermissionsQuery();
+        setPermissions(permissionsData);
 
-            const allIds = Array.from(
-                new Set(
-                  groupedPermissions.flatMap((category) =>
-                    category.subHeaders.flatMap((subHeader) =>
-                      permissionsData
-                        .filter((perm) => subHeader.permissions.includes(perm.permission))
-                        .map((perm) => perm.permission_id)
-                    )
+        const allIds = Array.from(
+          new Set(
+            groupedPermissions.flatMap((category) =>
+              category.subHeaders.flatMap((subHeader) =>
+                permissionsData
+                  .filter((perm: any) =>
+                    subHeader.permissions.includes(perm.permission)
                   )
-                )
-              );
-              setAllPermissionIds(allIds);
-          } catch (error) {
-            console.error("Error fetching permissions:", error);
-            toast.error("Failed to load permissions");
-          } finally {
-            setIsLoading(false);
-          }
-        };
-    
-        fetchPermissions();
-      }, []);
+                  .map((perm: any) => perm.permission_id)
+              )
+            )
+          )
+        );
+        setAllPermissionIds(allIds);
+      } catch (error) {
+        console.error("Error fetching permissions:", error);
+        toast.error("Failed to load permissions");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPermissions();
+  }, []);
 
   // หา permission_id จาก permission name
   const getPermissionIdsByNames = (names: string[]) => {
@@ -124,40 +126,45 @@ export default function ManagePermissionsPage() {
   };
 
   // ตรวจสอบว่า Permission ถูก Disabled หรือไม่
-  const isPermissionDisabled = (category, permissionName) => {
+  const isPermissionDisabled = (category: any, permissionName: any) => {
     // ค้นหา Sub Header ที่ title เป็น View ใน Category เดียวกัน
-    const viewSubHeader = category.subHeaders.find((subHeader) =>
+    const viewSubHeader = category.subHeaders.find((subHeader: any) =>
       subHeader.title.toLowerCase().includes("view")
     );
-  
+
     if (!viewSubHeader) return false; // หากไม่มี View Sub Header, ไม่ต้อง Disabled
-  
+
     // หาก Permission เป็น View (READ), ตรวจสอบว่า Create/Update/Manage ถูกเลือกอยู่หรือไม่
     if (permissionName.startsWith("READ")) {
       // ค้นหา Sub Header ที่เป็น Create/Update/Manage และไม่ได้มีแต่ READ permissions
-      const createUpdateIds = category.subHeaders.flatMap((subHeader) => {
+      const createUpdateIds = category.subHeaders.flatMap((subHeader: any) => {
         // ตรวจสอบว่า title เป็น Create/Update/Manage
-        const isModified = /^CREATE|UPDATE|MANAGE/.test(subHeader.title.toUpperCase());
-        
+        const isModified = /^CREATE|UPDATE|MANAGE/.test(
+          subHeader.title.toUpperCase()
+        );
+
         // ตรวจสอบว่ามี permissions อื่นที่ไม่ใช่ READ
-        const hasNonReadPermissions = subHeader.permissions.some(perm => !perm.startsWith("READ"));
-        
+        const hasNonReadPermissions = subHeader.permissions.some(
+          (perm: any) => !perm.startsWith("READ")
+        );
+
         // เลือกเฉพาะ Sub Header ที่เป็น Create/Update/Manage และมี permissions อื่นที่ไม่ใช่ READ
         if (isModified && hasNonReadPermissions) {
           return getPermissionIdsByNames(subHeader.permissions);
         }
         return [];
       });
-  
-      return createUpdateIds.some((id) => selectedPermissions.includes(id));
+
+      return createUpdateIds.some((id: any) =>
+        selectedPermissions.includes(id)
+      );
     }
-  
+
     return false; // อื่น ๆ ไม่ต้อง Disabled
   };
-  
 
   // Toggle Sub Header
-  const toggleSubHeader = (names, category) => {
+  const toggleSubHeader = (names: any, category: any) => {
     const ids = getPermissionIdsByNames(names);
     const allSelected = ids.every((id) => selectedPermissions.includes(id));
 
@@ -177,14 +184,14 @@ export default function ManagePermissionsPage() {
       // หากเลือก Create/Update ให้เลือก View ด้วย
       if (
         names.some(
-          (name) =>
+          (name: any) =>
             name.startsWith("CREATE") ||
             name.startsWith("UPDATE") ||
             name.startsWith("GRANT") ||
             name.startsWith("REVOKE")
         )
       ) {
-        const viewPermissionNames = category.subHeaders.find((subHeader) =>
+        const viewPermissionNames = category.subHeaders.find((subHeader: any) =>
           subHeader.title.toLowerCase().includes("view")
         )?.permissions;
 
@@ -203,11 +210,13 @@ export default function ManagePermissionsPage() {
     updateSelectAllState(updatedPermissions);
   };
 
-  const toggleCategory = (category) => {
-    const ids = category.subHeaders.flatMap((subHeader) =>
+  const toggleCategory = (category: any) => {
+    const ids = category.subHeaders.flatMap((subHeader: any) =>
       getPermissionIdsByNames(subHeader.permissions)
     );
-    const allSelected = ids.every((id) => selectedPermissions.includes(id)); // ใช้ Array.includes()
+    const allSelected = ids.every((id: any) =>
+      selectedPermissions.includes(id)
+    ); // ใช้ Array.includes()
     if (allSelected) {
       // Deselect all related permissions in category
       setSelectedPermissions((prev) => prev.filter((id) => !ids.includes(id)));
@@ -218,27 +227,28 @@ export default function ManagePermissionsPage() {
   };
 
   // Toggle Select All Permissions
-    const toggleSelectAllPermissions = () => {
-        if (isSelectAll) {
-          // Deselect all permissions
-          setSelectedPermissions([]);
-        } else {
-          // Select all permissions in groupedPermissions
-          setSelectedPermissions(allPermissionIds);
-        }
-    
-        setIsSelectAll(!isSelectAll); // Toggle State ของ Select All
-      };
-    
-  // อัปเดตสถานะ Select All
-  const updateSelectAllState = (currentSelectedPermissions) => {
+  const toggleSelectAllPermissions = () => {
+    if (isSelectAll) {
+      // Deselect all permissions
+      setSelectedPermissions([]);
+    } else {
+      // Select all permissions in groupedPermissions
+      setSelectedPermissions(allPermissionIds);
+    }
 
+    setIsSelectAll(!isSelectAll); // Toggle State ของ Select All
+  };
+
+  // อัปเดตสถานะ Select All
+  const updateSelectAllState = (currentSelectedPermissions: any) => {
     if (allPermissionIds.length > 0) {
-        setIsSelectAll(allPermissionIds.every((id) => currentSelectedPermissions.includes(id)));
-      } else {
-        setIsSelectAll(false); // หากไม่มี Permission ใดใน groupedPermissions, ตั้งค่าเป็น false
-      }
-    };
+      setIsSelectAll(
+        allPermissionIds.every((id) => currentSelectedPermissions.includes(id))
+      );
+    } else {
+      setIsSelectAll(false); // หากไม่มี Permission ใดใน groupedPermissions, ตั้งค่าเป็น false
+    }
+  };
 
   // ใช้ useEffect เพื่อตรวจสอบและอัปเดตสถานะ Select All
   useEffect(() => {
@@ -275,7 +285,7 @@ export default function ManagePermissionsPage() {
       <h1 className="text-2xl font-bold mb-6 text-gray-800">
         Manage Permissions
       </h1>
-      
+
       {/* ตารางสิทธิ์ */}
       <Table aria-label="Manage User Permissions Table">
         <TableHeader columns={columns}>
@@ -289,95 +299,97 @@ export default function ManagePermissionsPage() {
           )}
         </TableHeader>
         <TableBody>
-            <>
-        <TableRow key="all-permissions">
-          <TableCell className="bg-gray-200 font-bold text-gray-900 rounded-l-lg">
-            <FontAwesomeIcon
-              icon={faCheckSquare} 
-              className="mr-2 text-blue-500"
-              size="1x"
-            />
-            All Permissions
-          </TableCell>
-          <TableCell className="bg-gray-200 text-gray-900 rounded-r-lg">
-            <Switch
-              isSelected={isSelectAll}
-              onChange={toggleSelectAllPermissions}
-              color="success"
-              size="md"
-            />
-          </TableCell>
-        </TableRow>
+          <>
+            <TableRow key="all-permissions">
+              <TableCell className="bg-gray-200 font-bold text-gray-900 rounded-l-lg">
+                <FontAwesomeIcon
+                  icon={faCheckSquare}
+                  className="mr-2 text-blue-500"
+                  size="1x"
+                />
+                All Permissions
+              </TableCell>
+              <TableCell className="bg-gray-200 text-gray-900 rounded-r-lg">
+                <Switch
+                  isSelected={isSelectAll}
+                  onChange={toggleSelectAllPermissions}
+                  color="success"
+                  size="md"
+                />
+              </TableCell>
+            </TableRow>
 
-          {groupedPermissions.map((group) => (
-            <React.Fragment key={group.category}>
-              {/* Sub Header */}
-              <TableRow key={group.category}>
-                <TableCell className="bg-gray-100 font-semibold text-gray-600 rounded-l-lg">
-                  <FontAwesomeIcon
-                    icon={group.icon}
-                    className="mr-2 text-blue-500"
-                  />
-                  {group.category}
-                </TableCell>
-                <TableCell className="bg-gray-100 font-semibold text-gray-600 rounded-r-lg">
-                  <Switch
-                    isSelected={group.subHeaders
-                      .flatMap((subHeader) =>
-                        getPermissionIdsByNames(subHeader.permissions)
-                      )
-                      .every((id) => selectedPermissions.includes(id))} // ใช้ Array.includes()
-                    onChange={() => toggleCategory(group)}
-                    color="success"
-                  />
-                </TableCell>
-              </TableRow>
+            {groupedPermissions.map((group) => (
+              <React.Fragment key={group.category}>
+                {/* Sub Header */}
+                <TableRow key={group.category}>
+                  <TableCell className="bg-gray-100 font-semibold text-gray-600 rounded-l-lg">
+                    <FontAwesomeIcon
+                      icon={group.icon}
+                      className="mr-2 text-blue-500"
+                    />
+                    {group.category}
+                  </TableCell>
+                  <TableCell className="bg-gray-100 font-semibold text-gray-600 rounded-r-lg">
+                    <Switch
+                      isSelected={group.subHeaders
+                        .flatMap((subHeader) =>
+                          getPermissionIdsByNames(subHeader.permissions)
+                        )
+                        .every((id) => selectedPermissions.includes(id))} // ใช้ Array.includes()
+                      onChange={() => toggleCategory(group)}
+                      color="success"
+                    />
+                  </TableCell>
+                </TableRow>
 
-              {/* Sub Headers */}
-              {group.subHeaders.map((subHeader) => (
-                <React.Fragment key={subHeader.title}>
-                  {/* Sub Header Row */}
-                  <TableRow key={subHeader.title}>
-                    <TableCell className="text-gray-500">{subHeader.title}</TableCell>
-                    <TableCell>
-                      <Switch
-                        isSelected={getPermissionIdsByNames(
-                          subHeader.permissions
-                        ).every((id) => selectedPermissions.includes(id))}
-                        onChange={() =>
-                          toggleSubHeader(subHeader.permissions, group)
-                        }
-                        color="success"
-                        isDisabled={subHeader.permissions.some(
-                          (permission_name) =>
-                            isPermissionDisabled(group, permission_name)
-                        )}
-                      />
-                    </TableCell>
-                  </TableRow>
-                </React.Fragment>
-              ))}
-            </React.Fragment>
-          ))}
+                {/* Sub Headers */}
+                {group.subHeaders.map((subHeader) => (
+                  <React.Fragment key={subHeader.title}>
+                    {/* Sub Header Row */}
+                    <TableRow key={subHeader.title}>
+                      <TableCell className="text-gray-500">
+                        {subHeader.title}
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          isSelected={getPermissionIdsByNames(
+                            subHeader.permissions
+                          ).every((id) => selectedPermissions.includes(id))}
+                          onChange={() =>
+                            toggleSubHeader(subHeader.permissions, group)
+                          }
+                          color="success"
+                          isDisabled={subHeader.permissions.some(
+                            (permission_name) =>
+                              isPermissionDisabled(group, permission_name)
+                          )}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  </React.Fragment>
+                ))}
+              </React.Fragment>
+            ))}
           </>
         </TableBody>
       </Table>
 
       {/* ปุ่มบันทึก */}
       <div className="flex flex-row justify-between mt-6">
-      <button
-        onClick={() => router.push(`/users/${userID}`)}
-        className=" bg-gray-500 text-white px-8 py-3 rounded-lg shadow-md hover:bg-gray-600 transition-all"
-      >
-        Back
-      </button>
+        <button
+          onClick={() => router.push(`/users/${userID}`)}
+          className=" bg-gray-500 text-white px-8 py-3 rounded-lg shadow-md hover:bg-gray-600 transition-all"
+        >
+          Back
+        </button>
 
-      <button
-        onClick={saveChanges}
-        className="bg-blue-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-blue-600 transition-all"
-      >
-        Save Changes
-      </button>
+        <button
+          onClick={saveChanges}
+          className="bg-blue-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-blue-600 transition-all"
+        >
+          Save Changes
+        </button>
       </div>
     </div>
   );

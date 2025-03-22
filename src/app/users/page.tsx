@@ -434,14 +434,14 @@ export default function UserManagementPage() {
                   label="Update date"
                   size="md"
                   variant="flat"
-                  value={{
-                    start: dataFilter.start_date
-                      ? parseDate(dataFilter.start_date)
-                      : null,
-                    end: dataFilter.end_date
-                      ? parseDate(dataFilter.end_date)
-                      : null,
-                  }}
+                  // value={{
+                  //   start: dataFilter.start_date
+                  //     ? parseDate(dataFilter.start_date)
+                  //     : null,
+                  //   end: dataFilter.end_date
+                  //     ? parseDate(dataFilter.end_date)
+                  //     : null,
+                  // }}
                   onChange={(date) => onDateChange(date)}
                 />
               </div>
