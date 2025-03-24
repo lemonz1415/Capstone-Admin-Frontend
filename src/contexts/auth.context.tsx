@@ -73,16 +73,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       const isTokenValid = await checkTokenValidity();
 
-      if (!isTokenValid) {
+      if (isTokenValid) {
+        // เพิ่มบรรทัดนี้เพื่ออัปเดตสถานะ login เมื่อ token ยังใช้งานได้
+        setIsLoggedIn(true);
+      } else {
         try {
           await refreshAccessTokenQuery(refreshToken);
+          setIsLoggedIn(true); // เพิ่มบรรทัดนี้เพื่ออัปเดตสถานะหลัง refresh token
           window.location.reload();
         } catch (error) {
           logout();
         }
       }
     };
-
+    
     checkTokens();
   }, [logout, router]);
 
