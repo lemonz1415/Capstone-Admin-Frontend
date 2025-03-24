@@ -20,6 +20,7 @@ export const getAllQuestionQuery = async (params: {
   page?: number;
   per_page?: number;
   search_filter?: string;
+  user_id?: number;
 }) => {
   try {
     // สร้าง Query String จาก Object
