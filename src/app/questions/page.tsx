@@ -50,8 +50,8 @@ export default function ManageQuestion() {
 
   useEffect(() => {
     const getAllSkill = async () => {
-      const skills = await getAllSkillQuery();
-      setSkills(skills);
+      const response = await getAllSkillQuery();
+      setSkills(response.skills);
     };
 
     getAllSkill();
