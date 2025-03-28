@@ -9,6 +9,7 @@ import {
   createQuestionQuery,
   getQuestionsByIDQuery,
   editQuestionQuery,
+  getAllQuestionQuery,
 } from "@/query/question.query";
 import { createOptionQuery } from "@/query/option.query";
 import { getAllSkillQuery } from "@/query/skill.query";
@@ -130,7 +131,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     const getAllSkill = async () => {
       const response = await getAllSkillQuery();
       if (response) {
-        setSkills(response);
+        setSkills(response.skills);
       }
     };
     getAllSkill();
@@ -423,6 +424,28 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
     }
   }, [isPermissioned, isFetching, router]);
 
+  //----------------
+  // ACCESS
+  //----------------
+  const [isCanAccess, setIsCanAccess] = useState(true);
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const { data } = await getAllQuestionQuery({ per_page: 9999 });
+
+        setIsCanAccess(
+          data.some((q: any) => q.question_id === Number(questionID))
+        );
+      } catch (error) {
+        console.error("Error fetching question list:", error);
+      }
+    };
+    if (mode === "update") {
+      checkAccess();
+    }
+  }, [questionID, isFetching]);
+
   // แสดงหน้า load รอจนตัว editor และ ข้อมูลถูกดึงมา ( กรณีเป็น update ) จนเสร็จก่อนค่อยแสดงทั้งหมดพร้อมกัน
   if (isInitialLoading || !isEditorReady) {
     return (
@@ -447,6 +470,15 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
         icon={faXmark}
         title="Unauthorized Access"
         message="You do not have permission to access this resource."
+        confirmText="Confirm"
+      />
+      <Modal
+        isOpen={!isCanAccess}
+        onClose={() => router.push("/questions")}
+        onConfirmFetch={() => router.push("/questions")}
+        icon={faXmark}
+        title="Access Denied"
+        message="You do not have permission to access this page."
         confirmText="Confirm"
       />
       <Modal
@@ -527,7 +559,7 @@ export default function QuestionForm({ mode, questionID }: QuestionFormProps) {
         actionType="default"
         isPreview={true}
       />
-      {isAllowed && (
+      {isAllowed && isCanAccess && (
         <div className="max-w-5xl mx-auto px-4">
           {/* Header Section */}
           <div className="bg-white rounded-xl shadow-sm p-6 mb-8">

@@ -61,7 +61,6 @@ export default function UserForm() {
   const [openUnauthorizeModal, setOpenUnauthorizeModal] = useState(false);
 
   useEffect(() => {
-    console.log("fetch user");
     const fetchUserData = async () => {
       try {
         const response = await fetchMe();
@@ -77,7 +76,11 @@ export default function UserForm() {
     fetchUserData();
   }, []);
 
-  const isAllowed = isPermissioned(user, [roles.ADMIN]) && !isFetching;
+  const isSelfAdmin =
+    user?.role === "ADMIN" && Number(user_id) === user.user_id;
+
+  const isAllowed =
+    isPermissioned(user, [roles.ADMIN]) && !isFetching && !isSelfAdmin;
 
   useEffect(() => {
     if (isFetching) return;

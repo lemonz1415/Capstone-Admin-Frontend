@@ -62,20 +62,15 @@ export const enableDisableQuestionQuery = async (question_id: any) => {
 };
 
 export const getQuestionsByIDQuery = async (questionID: string) => {
-  try {
-    // const response = await axios.get(
-    //   `${HOST_URL}/api/admin/question/${questionID}`
-    // );
+  // const response = await axios.get(
+  //   `${HOST_URL}/api/admin/question/${questionID}`
+  // );
 
-    const response = await fetchWithAuth(
-      `/api/admin/question/${questionID}`,
-      "GET"
-    );
-    return response;
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
+  const response = await fetchWithAuth(
+    `/api/admin/question/${questionID}`,
+    "GET"
+  );
+  return response;
 };
 
 export const createQuestionQuery = async (body: any) => {

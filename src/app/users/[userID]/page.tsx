@@ -76,7 +76,6 @@ export default function UserDetailPage() {
   const [openUnauthorizeModal, setOpenUnauthorizeModal] = useState(false);
 
   useEffect(() => {
-    console.log("fetch user");
     const fetchUserData = async () => {
       try {
         const response = await fetchMe();
@@ -93,6 +92,8 @@ export default function UserDetailPage() {
   }, []);
 
   const isAllowed = isPermissioned(userWithRole, [roles.ADMIN]) && !isFetching;
+  const isSelfAdmin =
+    userWithRole?.role === "ADMIN" && user?.user_id === userWithRole.user_id;
 
   useEffect(() => {
     if (isFetching) return;
@@ -188,15 +189,17 @@ export default function UserDetailPage() {
               <p className="text-sm text-gray-500">{user.email}</p>
             </div>
             {/* Toggle Switch */}
-            <Switch
-              isSelected={user.is_active}
-              onChange={handleDisableEnableUser}
-              color="success"
-              size="lg"
-              className="ml-auto"
-            >
-              {user.is_active ? "Active" : "Inactive"}
-            </Switch>
+            {!isSelfAdmin && (
+              <Switch
+                isSelected={user.is_active}
+                onChange={handleDisableEnableUser}
+                color="success"
+                size="lg"
+                className="ml-auto"
+              >
+                {user.is_active ? "Active" : "Inactive"}
+              </Switch>
+            )}
           </div>
 
           {/* User Information */}
@@ -205,9 +208,11 @@ export default function UserDetailPage() {
               <h2 className="text-lg font-semibold text-gray-800">
                 USER INFORMATION
               </h2>
-              <Button variant="flat" color="primary" onPress={handleEdit}>
-                Edit Info
-              </Button>
+              {!isSelfAdmin && (
+                <Button variant="flat" color="primary" onPress={handleEdit}>
+                  Edit Info
+                </Button>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-x-12 gap-y-6">
