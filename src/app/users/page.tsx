@@ -130,8 +130,8 @@ export default function UserManagementPage() {
   ];
 
   const activeStatuses = [
-    { key: "true", label: "Active" },
-    { key: "false", label: "Inactive" },
+    { key: "true", label: "Enable" },
+    { key: "false", label: "Disable" },
   ];
 
   const [filterRoles, setFilterRoles] = useState([]);
@@ -300,12 +300,12 @@ export default function UserManagementPage() {
             {item.status ? (
               <>
                 <FontAwesomeIcon icon={faCheck} className="mr-1" />
-                Active
+                Enable
               </>
             ) : (
               <>
                 <FontAwesomeIcon icon={faTimes} className="mr-1" />
-                Inactive
+                Disable
               </>
             )}
           </Chip>
