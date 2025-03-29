@@ -115,8 +115,6 @@ function ProfilePage() {
         <div className="flex flex-col md:flex-row gap-6">
           {/* Left Column - User Profile and System Statistics */}
           <div className="w-full md:w-1/3">
-            {(userInfo.role === "ADMIN" ||
-              userInfo.role === "QUESTION_CREATOR") && (
               <div className="bg-white rounded-xl shadow-md p-6 md:p-8 border border-gray-300">
                 <div className="p-6 md:p-8">
                   <div className="flex flex-col items-center mb-4 -mt-6">
@@ -152,74 +150,80 @@ function ProfilePage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-between items-center mb-6 pb-2 mt-1 border-b border-gray-200">
-                  <h3 className="text-xl font-bold text-gray-800">
-                    System Statistics
-                  </h3>
-                </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-5 rounded-lg flex items-center">
-                    <div className="bg-blue-600 w-12 h-12 rounded-full mr-4 shadow-md flex items-center justify-center">
-                      <FontAwesomeIcon
-                        icon={faClipboardList}
-                        className="text-white text-xl"
-                      />
+                {/* System Statistics - แสดงเฉพาะ ADMIN และ QUESTION_CREATOR */}
+                {(userInfo.role === "ADMIN" ||
+                  userInfo.role === "QUESTION_CREATOR") && (
+                  <>
+                    <div className="flex justify-between items-center mb-6 pb-2 mt-1 border-b border-gray-200">
+                      <h3 className="text-xl font-bold text-gray-800">
+                        System Statistics
+                      </h3>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-blue-800 mb-1">
-                        {userInfo.role === "QUESTION_CREATOR"
-                          ? "Your Questions"
-                          : "Total Questions"}
-                      </p>
-                      <div className="flex justify-between items-center">
-                        <p className="text-3xl font-bold text-blue-700">
-                          {stats.totalQuestions}
-                        </p>
-                        <button
-                          onClick={() => {
-                            router.push("/questions");
-                          }}
-                          className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full transition-all duration-200 shadow-sm"
-                        >
-                          View All
-                        </button>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* แสดงจำนวนผู้ใช้เฉพาะสำหรับ Admin */}
-                  {userInfo.role === "ADMIN" && (
-                    <div className="bg-gradient-to-r from-green-50 to-green-100 p-5 rounded-lg flex items-center">
-                      <div className="bg-green-600 w-12 h-12 rounded-full mr-4 shadow-md flex justify-center items-center">
-                        <FontAwesomeIcon
-                          icon={faUsers}
-                          className="text-white text-xl"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-green-800 mb-1">
-                          Total Users
-                        </p>
-                        <div className="flex justify-between items-center">
-                          <p className="text-3xl font-bold text-green-700">
-                            {stats.totalUsers}
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-5 rounded-lg flex items-center">
+                        <div className="bg-blue-600 w-12 h-12 rounded-full mr-4 shadow-md flex items-center justify-center">
+                          <FontAwesomeIcon
+                            icon={faClipboardList}
+                            className="text-white text-xl"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-blue-800 mb-1">
+                            {userInfo.role === "QUESTION_CREATOR"
+                              ? "Your Questions"
+                              : "Total Questions"}
                           </p>
-                          <button
-                            onClick={() => {
-                              router.push("/users");
-                            }}
-                            className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-full transition-all duration-200 shadow-sm"
-                          >
-                            View All
-                          </button>
+                          <div className="flex justify-between items-center">
+                            <p className="text-3xl font-bold text-blue-700">
+                              {stats.totalQuestions}
+                            </p>
+                            <button
+                              onClick={() => {
+                                router.push("/questions");
+                              }}
+                              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full transition-all duration-200 shadow-sm"
+                            >
+                              View All
+                            </button>
+                          </div>
                         </div>
                       </div>
+
+                      {/* แสดงจำนวนผู้ใช้เฉพาะสำหรับ Admin */}
+                      {userInfo.role === "ADMIN" && (
+                        <div className="bg-gradient-to-r from-green-50 to-green-100 p-5 rounded-lg flex items-center">
+                          <div className="bg-green-600 w-12 h-12 rounded-full mr-4 shadow-md flex justify-center items-center">
+                            <FontAwesomeIcon
+                              icon={faUsers}
+                              className="text-white text-xl"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-800 mb-1">
+                              Total Users
+                            </p>
+                            <div className="flex justify-between items-center">
+                              <p className="text-3xl font-bold text-green-700">
+                                {stats.totalUsers}
+                              </p>
+                              <button
+                                onClick={() => {
+                                  router.push("/users");
+                                }}
+                                className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-full transition-all duration-200 shadow-sm"
+                              >
+                                View All
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
-            )}
           </div>
 
           {/* Right Column - User Information */}
@@ -230,10 +234,10 @@ function ProfilePage() {
                 <h3 className="text-xl font-bold text-gray-800">
                   Personal Information
                 </h3>
-                <button className="text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors">
+                {/* <button className="text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors">
                   <FontAwesomeIcon icon={faPen} className="text-sm" />
                   <span>Edit Info</span>
-                </button>
+                </button> */}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
