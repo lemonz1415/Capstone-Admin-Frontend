@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/auth.context";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faKey } from "@fortawesome/free-solid-svg-icons";
 import loginBackground from "../../../../public/images/login-bg.jpg";
+import Image from "next/image";
 
 const Login = () => {
   const { login } = useAuth();
@@ -34,17 +35,22 @@ const Login = () => {
     }
   };
 
+  const Background = () => (
+    <div className="absolute inset-0">
+      <Image
+        src={loginBackground}
+        alt="Heading Background"
+        fill
+        style={{ objectFit: "cover" }}
+      />
+    </div>
+  );
+
   return (
-    <div
-      className="flex min-h-screen justify-center items-center text-white p-20"
-      style={{
-        backgroundImage: `url(${loginBackground.src})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
+    <div className="flex min-h-screen justify-center items-center text-white p-20">
       {/* Left section (illustration) */}
-      <div className="flex-[2] flex flex-col justify-center items-center text-white p-16 ">
+      <Background />
+      <div className="flex-[2] flex flex-col justify-center items-center text-white p-16 relative z-10">
         <h2 className="text-6xl font-extrabold mb-4 shadow-lg border-b pb-4">
           <span className="text-[#005CC4]">Welcome to</span> <br /> Management
           System
@@ -55,7 +61,7 @@ const Login = () => {
       </div>
 
       {/* Right section (login form) */}
-      <div className="flex-1 flex justify-center items-center bg-[#003BA7] bg-opacity-90 rounded-xl p-12 max-w-[460px] shadow-xl">
+      <div className="flex-1 flex justify-center items-center bg-[#003BA7] bg-opacity-90 rounded-xl p-12 max-w-[460px] shadow-xl relative z-10">
         <div className="w-full space-y-6">
           <h1 className="text-3xl font-semibold text-white text-center">
             Log In
