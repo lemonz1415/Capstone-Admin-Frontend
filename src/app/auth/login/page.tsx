@@ -10,6 +10,17 @@ import { faEnvelope, faKey } from "@fortawesome/free-solid-svg-icons";
 import loginBackground from "../../../../public/images/login-bg.jpg";
 import Image from "next/image";
 
+const Background = () => (
+  <div className="absolute inset-0 w-full h-full">
+    <Image
+      src={loginBackground}
+      alt="Heading Background"
+      fill
+      style={{ objectFit: "cover" }}
+    />
+  </div>
+);
+
 const Login = () => {
   const { login } = useAuth();
 
@@ -34,17 +45,6 @@ const Login = () => {
       );
     }
   };
-
-  const Background = () => (
-    <div className="absolute inset-0">
-      <Image
-        src={loginBackground}
-        alt="Heading Background"
-        fill
-        style={{ objectFit: "cover" }}
-      />
-    </div>
-  );
 
   return (
     <div className="flex min-h-screen justify-center items-center text-white p-20">
