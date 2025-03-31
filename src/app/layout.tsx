@@ -30,6 +30,7 @@ export default function RootLayout({
     "/set-password/complete",
     "/verify-email",
     "/auth/login",
+    "/",
   ];
 
   return (

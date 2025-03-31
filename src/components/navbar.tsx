@@ -16,10 +16,13 @@ import { useEffect, useState, useRef } from "react";
 import { fetchMe } from "@/query/user.query";
 import { isPermissioned } from "@/util/auth";
 import { roles } from "@/util/role";
+import classNames from "classnames";
 
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
+
+  console.log(pathname);
 
   //----------------
   // AUTH
@@ -123,7 +126,11 @@ export default function Navbar() {
       </aside>
 
       {/* Main Header */}
-      <header className="flex items-center justify-between bg-white text-black text-xl font-medium py-[12px] px-6 fixed top-0 left-[16rem] right-0 shadow-md z-[5]">
+      <header
+        className={classNames(
+          "flex items-center justify-between bg-white text-black text-xl font-medium py-[12px] px-6 fixed top-0 left-[16rem] right-0 shadow-md z-[5]"
+        )}
+      >
         <div>Welcome to the Admin Panel</div>
         {/* Login Button */}
         {isLoggedIn ? (
@@ -152,9 +159,7 @@ export default function Navbar() {
               >
                 <div className="px-4 py-3 border-b border-gray-100">
                   <p className="text-sm text-gray-500">Signed in as</p>
-                  <p className="font-medium text-blue-700">
-                    {user?.email}
-                  </p>
+                  <p className="font-medium text-blue-700">{user?.email}</p>
                 </div>
                 <ul>
                   <li
